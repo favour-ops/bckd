@@ -48,7 +48,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "jest"
   },
   "keywords": [
     "bills",
@@ -70,6 +71,13 @@
   "license": "ISC",
   "devDependencies": {
     "jest": "^29.7.0",
-    "sequelize-cli": "^6.6.3"
+    "sequelize-cli": "^6.6.3",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "testEnvironment": "node"
   }
 }
