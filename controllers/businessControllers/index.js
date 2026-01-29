@@ -5,6 +5,7 @@ const transactions = require('./transactions');
 const webhooks = require('./webhooks');
 const adminuse = require('./adminuse');
 const compliance = require('./verification');
+const dashboard = require('./dashboard');
 // const { BusinessRegistrationWeb } = require('./onboarding');
 
 module.exports = {
@@ -14,5 +15,6 @@ module.exports = {
   ...transactions,
   ...webhooks,
   ...adminuse,
-  ...compliance
+  ...compliance,
+  ...dashboard
 };
