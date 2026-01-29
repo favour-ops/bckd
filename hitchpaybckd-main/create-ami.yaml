@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      # get version number from parameter store
+      - version=$(aws ssm get-parameter --name "version" --query Parameter.Value | tr -d '"')
+      - echo $version
+      # increase version number by 1 
+      - version=$(($version+1))
+      - echo $version
+      # update version number in parameter store
+      - aws ssm put-parameter --name "version" --type "String" --value "$version" --overwrite
+      
+      # create ami and store the ami_id as an env variable
+      - ami_id=$(aws ec2 create-image --instance-id i-0cc9162cbc099f104 --name HitchPayAMI-version-$version | jq -r '.ImageId')
+      - echo $ami_id
+      # update parameter store with the ami_id value
+      - aws ssm put-parameter --name "ami_id" --type "String" --value "$ami_id" --overwrite
+      

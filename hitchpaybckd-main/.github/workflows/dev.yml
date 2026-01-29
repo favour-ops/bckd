@@ -1,0 +1,32 @@
+name: DEV Pipeline
+
+on:
+  push:
+    branches: [ "dev"]
+
+permissions:
+    id-token: write
+    contents: read
+
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+        with:
+          # Disabling shallow clones is recommended for improving the relevancy of reporting
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        with:
+          scannerVersion: 7.0.2.4839
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=hitchpaybckd
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

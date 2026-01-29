@@ -1,0 +1,329 @@
+{
+  "coverage": {
+    "collections": [
+      {
+        "country": "Benin",
+        "iso": "BJ",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+229"
+      },
+      {
+        "country": "Botswana",
+        "iso": "BW",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "BWP",
+        "dial_code": "+267"
+      },
+      {
+        "country": "Burkina Faso",
+        "iso": "BF",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+226"
+      },
+      {
+        "country": "Cameroon",
+        "iso": "CM",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XAF",
+        "dial_code": "+237"
+      },
+      {
+        "country": "Ivory Coast",
+        "iso": "CI",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+225"
+      },
+      {
+        "country": "DR Congo",
+        "iso": "CD",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "CDF",
+        "dial_code": "+243"
+      },
+      {
+        "country": "Congo Brazzaville",
+        "iso": "CG",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "XAF",
+        "dial_code": "+242"
+      },
+      {
+        "country": "Gabon",
+        "iso": "GA",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "XAF",
+        "dial_code": "+241"
+      },
+      {
+        "country": "Ghana",
+        "iso": "GH",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "GHS",
+        "dial_code": "+233"
+      },
+      {
+        "country": "Kenya",
+        "iso": "KE",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "KES",
+        "dial_code": "+254"
+      },
+      {
+        "country": "Mali",
+        "iso": "ML",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+223"
+      },
+      {
+        "country": "Malawi",
+        "iso": "MW",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "MWK",
+        "dial_code": "+265"
+      },
+      {
+        "country": "Nigeria",
+        "iso": "NG",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "NGN",
+        "dial_code": "+234"
+      },
+      {
+        "country": "Rwanda",
+        "iso": "RW",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "RWF",
+        "dial_code": "+250"
+      },
+      {
+        "country": "Tanzania",
+        "iso": "TZ",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "TZS",
+        "dial_code": "+255"
+      },
+      {
+        "country": "Togo",
+        "iso": "TG",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+228"
+      },
+      {
+        "country": "Uganda",
+        "iso": "UG",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "UGX",
+        "dial_code": "+256"
+      },
+      {
+        "country": "United Stated",
+        "iso": "US",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "USD",
+        "dial_code": "+1"
+      },
+      {
+        "country": "Zambia",
+        "iso": "ZM",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "ZMW",
+        "dial_code": "+260"
+      }
+    ],
+    "disbursements": [
+      {
+        "country": "Benin",
+        "iso": "BJ",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+229"
+      },
+      {
+        "country": "Botswana",
+        "iso": "BW",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "BWP",
+        "dial_code": "+267"
+      },
+      {
+        "country": "Burkina Faso",
+        "iso": "BF",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+226"
+      },
+      {
+        "country": "Cameroon",
+        "iso": "CM",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XAF",
+        "dial_code": "+237"
+      },
+      {
+        "country": "Congo Brazzaville",
+        "iso": "CG",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "XAF",
+        "dial_code": "+242"
+      },
+      {
+        "country": "DR Congo",
+        "iso": "CD",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "CDF",
+        "dial_code": "+243"
+      },
+      {
+        "country": "Ivory Coast",
+        "iso": "CI",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+225"
+      },
+      {
+        "country": "Gabon",
+        "iso": "GA",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "XAF",
+        "dial_code": "+241"
+      },
+      {
+        "country": "Ghana",
+        "iso": "GH",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "GHS",
+        "dial_code": "+233"
+      },
+      {
+        "country": "Kenya",
+        "iso": "KE",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "KES",
+        "dial_code": "+254"
+      },
+      {
+        "country": "Malawi",
+        "iso": "MW",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "MWK",
+        "dial_code": "+265"
+      },
+      {
+        "country": "Mali",
+        "iso": "ML",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+223"
+      },
+      {
+        "country": "Nigeria",
+        "iso": "NG",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "NGN",
+        "dial_code": "+234"
+      },
+       {
+        "country": "United Stated",
+        "iso": "US",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "USD",
+        "dial_code": "+1"
+      },
+      {
+        "country": "Rwanda",
+        "iso": "RW",
+        "bank_transfer": true,
+        "mobile_money": false,
+        "currency": "RWF",
+        "dial_code": "+250"
+      },
+      {
+        "country": "Senegal",
+        "iso": "SN",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+221"
+      },
+      {
+        "country": "Tanzania",
+        "iso": "TZ",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "TZS",
+        "dial_code": "+255"
+      },
+      {
+        "country": "Togo",
+        "iso": "TG",
+        "bank_transfer": false,
+        "mobile_money": true,
+        "currency": "XOF",
+        "dial_code": "+228"
+      },
+      {
+        "country": "Uganda",
+        "iso": "UG",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "UGX",
+        "dial_code": "+256"
+      },
+      {
+        "country": "United Stated",
+        "iso": "US",
+        "bank_transfer": false,
+        "mobile_money": false,
+        "currency": "USD",
+        "dial_code": "+1"
+      },
+      {
+        "country": "Zambia",
+        "iso": "ZM",
+        "bank_transfer": true,
+        "mobile_money": true,
+        "currency": "ZMW",
+        "dial_code": "+260"
+      }
+    ]
+  },
+  "last_updated": "2025-11-09"
+}

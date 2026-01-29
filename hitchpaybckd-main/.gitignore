@@ -1,0 +1,12 @@
+node_modules
+.env
+env.env
+env2
+.envtest
+.envlive
+config/serviceAccountKey.json
+/config/*.json
+/routes/userRoutersDebugger.js
+logs
+/newrelic_agent.log
+newrelic_agent.log

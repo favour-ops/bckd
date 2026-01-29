@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      # get the ami_id value from parameter store
+      - ami_id=$(aws ssm get-parameter --name "ami_id" --query Parameter.Value)
+      - echo $ami_id
+      # create launch template version
+      - aws ec2 create-launch-template-version --launch-template-id lt-0efa8bccdb66dd927 --launch-template-data "{\"ImageId\":$ami_id,\"InstanceType\":\"t3.large\",\"KeyName\":\"hitchpay-key\",\"SecurityGroupIds\":[\"sg-09918a24de322b65b\"],\"IamInstanceProfile\":{\"Arn\":\"arn:aws:iam::590183877235:instance-profile/HitchpaybackendRole\"}}"
+      # get latest version number
+      - latest=$(aws ec2 describe-launch-templates --launch-template-ids lt-0efa8bccdb66dd927 | jq -r '.LaunchTemplates[].LatestVersionNumber')
+      - echo $latest
+      # set latest version number as default
+      - aws ec2 modify-launch-template --launch-template-id lt-0efa8bccdb66dd927 --default-version $latest
+      
+      # perform instance refresh to rollout to production
+      - aws autoscaling start-instance-refresh --auto-scaling-group-name hitchpay-prod-asg
