@@ -244,8 +244,9 @@ const AdmincreateVKadAccount = async (req, res) => {
         // });
 
         if(getUser.countrycode == 'NG'){
-            // var getkyc = await KYC.findOne({ where: {userid: userid, status: 1, vertype: 'BVN'}, order: [['id', 'DESC']]});
-            var getkyc = await KYC.findOne({where: { userid: userid, status: 1, [Op.or]: [{ vertype: 'BVN' }, { vertype: 'NIN' }, { provider: 'veriff' }] }, order: [['id', 'DESC']]})
+            //they are only using bvn, for other vertype they are returning could not validate bVN
+            var getkyc = await KYC.findOne({ where: {userid: userid, status: 1, vertype: 'BVN'}, order: [['id', 'DESC']]});
+            // var getkyc = await KYC.findOne({where: { userid: userid, status: 1, [Op.or]: [{ vertype: 'BVN' }, { vertype: 'NIN' }, { provider: 'veriff' }] }, order: [['id', 'DESC']]})
 
             if (!getkyc)
                 return res.status(400).json({ status: false, message: 'Kindly complete your BVN verification to proceed', data: { errortype: "verificaton" } });

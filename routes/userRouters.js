@@ -223,12 +223,13 @@ router.post("/verifypayintent", standardMiddleChecks, remittanceControllers.veri
 /* LOAN ANS SAVINGS */
 router.get("/eligibleschool", standardMiddleChecks, loanControllers.fetchSchools);
 router.get("/faculties/:schoolid", standardMiddleChecks, loanControllers.fetchFaculties);
-router.post("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);  //process deposit
+router.post("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);
 router.post("/submitbnpl_loan", standardMiddleChecks, uploads.single('fileupload'), loanControllers.submitLoanApplication);  //process deposit
+router.get("/loanhistory", standardMiddleChecks, loanControllers.fetchAllLoanHistory);
+router.get("/loandetails/:reference", standardMiddleChecks, loanControllers.fetchLoanDetails);
 
 
 // router.get("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);  //process deposit
-
 //bvverify = 0 -pending, 1 - OTP SENT, 2 - Verified
 //isverified = 0 -pending, 1 - verified (when selfie-bvn is completed)
 //reglevel  = 0 - ongoing, 1- onboarded, 2 - done kyc

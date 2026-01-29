@@ -273,6 +273,7 @@ const submitLoanApplication = async (req, res) => {
         if (loanType === 'bnpl') {
             calculated_loan_amount = tuitionAmount * loanOfferRate;
             if (calculated_loan_amount > 100000) calculated_loan_amount = 100000;
+
             expected_downpayment = tuitionAmount - calculated_loan_amount;
             calculated_total_interest = calculated_loan_amount * repayrate;
         } else {
@@ -291,15 +292,30 @@ const submitLoanApplication = async (req, res) => {
         // check if the user has enough balance for the downpayment
         const userWalletBalance = await getBal(userid, paywith, {}, 'personal');
 
-        if (paywith != tuitionCurrency) {
-            // CONVERT THE TUITION CURRENCY TO HIS PAYWITH
-            get
 
+        // CONVERT THE TUITION CURRENCY TO HIS PAYWITH
+        let toChargeTuition = 0; let expectedDownPayment = 0; 
+        let calculatedLoanAmount = 0; let fxrate = 0
+
+        if (paywith != tuitionCurrency) {
+            rateData = await publicCDN_Fx(tuitionCurrency, paywith);
+            // console.log('rateData', rateData)
+            if ((!rateData[0]) && (!rateData[1])) 
+                return res.status(400).json({ status: false, message: 'Unable to get conversion rate' });
+            
+            fxrate = rateData[1];
+            toChargeTuition = parseFloat(tuitionAmount) * fxrate;  //in payment mehtod currency
+            expectedDownPayment = parseFloat(expected_downpayment) * fxrate;  //in payment mehtod currency
+            calculatedLoanAmount = parseFloat(calculated_loan_amount) * fxrate;  //in payment mehtod currency
+        }else{
+            toChargeTuition = parseFloat(tuitionAmount);
+            expectedDownPayment = parseFloat(expected_downpayment);
+            calculatedLoanAmount = parseFloat(calculated_loan_amount);
         }
 
 
-        if (userWalletBalance < expected_downpayment) {
-            return res.status(400).json({ status: false, message: `Insufficient wallet balance for downpayment. Please fund your ${paywith} wallet with ${expected_downpayment} to proceed.` });
+        if (userWalletBalance < expectedDownPayment) {
+            return res.status(400).json({ status: false, message: `Insufficient wallet balance for your downpayment. Please fund your ${paywith} wallet with ${paywith} ${expectedDownPayment} to proceed.` });
         }
 
 
@@ -356,10 +372,7 @@ const submitLoanApplication = async (req, res) => {
         const calculatedProfit = 0;
 
         const metedata = {
-            matricno: matricno,
-            doctype: doctype,
-            document: thefile,
-            loanid: loanid
+            matricno: matricno, doctype: doctype, document: thefile, loanid: loanid, paymethod: paywith, fxrate:fxrate, total_tuition: toChargeTuition, expected_downpayment: expectedDownPayment, loan_amount: calculatedLoanAmount, total_interest: calculated_total_interest, repay_durations: repay_durations, repayrate: repayrate,
         }
 
     try{
@@ -368,19 +381,7 @@ const submitLoanApplication = async (req, res) => {
         
         // create the loan application
         const loan = await LoanApply.create({
-            userid: userid, amount: amount, 
-            offeramount: loan_offer, duration: repay_durations,
-            downpayment: expected_downpayment,
-            loantype: loanType,
-            interest: repayrate,
-            totalint: calculated_total_interest,
-            totalpayback: calculated_loan_amount,
-            reference: txref,
-            status: 'processing',
-            startdate: dtimed,
-            paybackdate: paybackDate,
-            declinemsg: '',
-            metedata: JSON.stringify(metedata)
+            userid: userid, amount: tuitionAmount, offeramount: calculated_loan_amount, duration: repay_durations, downpayment: expected_downpayment, loantype: loanType, interest: repayrate, totalint: calculated_total_interest, totalpayback: calculated_loan_amount, reference: txref, status: 'processing', startdate: dtimed, paybackdate: paybackDate, declinemsg: '', metedata: JSON.stringify(metedata)
         }, { transaction: debitTransaction });
 
         if (!loan) {
@@ -388,24 +389,23 @@ const submitLoanApplication = async (req, res) => {
         }
 
         // update the user's wallet balance
-        const newbalFromUpdate = await updateBalance(userid, expected_downpayment, paywith, 'debit', 'personal', { transaction: debitTransaction });
+        const newbalFromUpdate = await updateBalance(userid, expectedDownPayment, paywith, 'debit', 'personal', { transaction: debitTransaction });
 
         initialLog = await Payn.create({
-            userid: userid, amount: expected_downpayment, amountval: expected_downpayment, newbal: newbalFromUpdate, prevbal: userWalletBalance, txref: txref, pfor: 'Loan Downpayment', usertype: 'user', paytype: 'debit', productid: loanid, ntwk: 'BNPL', paidthru: 'Wallet', pay_desc: pay_desc_initial, timed: dtimed, status: 0, recipient: getuser.phoneno, fee: dfee, payroute: env, currency: paywith, revenue: calculatedProfit, providerfee: actualProviderFee
+            userid: userid, amount: expectedDownPayment, amountval: expectedDownPayment, newbal: newbalFromUpdate, prevbal: userWalletBalance, txref: txref, pfor: 'Loan Downpayment', usertype: 'user', paytype: 'debit', productid: loanid, ntwk: 'BNPL', paidthru: 'Wallet', pay_desc: pay_desc_initial, timed: dtimed, status: 0, recipient: getuser.phoneno, fee: dfee, payroute: env, currency: paywith, revenue: calculatedProfit, providerfee: actualProviderFee, rate: fxrate
         }, { transaction: debitTransaction });
 
         await debitTransaction.commit();
 
         // // notify the user via mailSender, notifyMe, pushNotify
-
         const emailContent = `
             <p>Hello ${getuser.firstname},</p>
-            <p>Your loan application has been submitted and approved successfully. We will procced to process your payment.</p>
-            
+            <p>Your loan application has been submitted and approved successfully. We will procced to process your payment.</p>            
             <p>Here are the details of your loan application:</p>
             <ul>
 
                 <li>Loan Type: ${loanType}</li>
+                <li>Reference: ${fxrate}</li>
                 <li>Amount: N${formatAmount(tuitionAmount)}</li>
                 <li>Loan Amount: N${formatAmount(calculated_loan_amount)}</li>
                 <li>Downpayment: N${formatAmount(expected_downpayment)}</li>
@@ -417,7 +417,6 @@ const submitLoanApplication = async (req, res) => {
                 <li>Portal Fee: N${formatAmount(portalFee)}</li>                
             </ul>
             <p>Thank you for choosing Hitchpay. We look forward to serving you with a seamless and secure payment experience.</p>
-        
         `;
 
         mailSender(getuser.firstname, 'Loan Application Submitted', getuser.email, emailContent);
@@ -428,16 +427,9 @@ const submitLoanApplication = async (req, res) => {
             status: true,
             message: 'Loan application submitted successfully',
             data: {
-                loanid: loanid,
-                txref: txref,
-                amount: amount,
-                offeramount: loan_offer,
-                duration: repay_durations,
-                downpayment: expected_downpayment,
-                loantype: loanType,
-                interest: repayrate,
-                totalint: calculated_total_interest,
-                totalpayback: calculated_loan_amount,
+                loanid: loanid, txref: txref, amount: amount, offeramount: loan_offer,
+                duration: repay_durations, downpayment: expected_downpayment, loantype: loanType,
+                interest: repayrate, totalint: calculated_total_interest, totalpayback: calculated_loan_amount,
                 reference: txref
             }
         });
@@ -451,8 +443,84 @@ const submitLoanApplication = async (req, res) => {
 
 }
 
+const fetchAllLoanHistory = async (req, res) => {
+    const userid = req.user.id;
+    if (!userid) return res.status(400).json({ status: false, message: 'Eh! Invalid request sent!' });
+
+    try {
+        const loans = await LoanApply.findAll({
+            where: { userid: userid },
+            attributes: ['id', 'amount', 'offeramount', 'duration', 'downpayment', 'loantype', 'interest', 'totalint', 'totalpayback', 'reference', 'status', 'startdate', 'paybackdate', 'declinemsg', 'metedata']
+        });
+        if (!loans || loans.length === 0) {
+            return res.status(400).json({ status: false, message: 'No loan applications found' });
+        }
+        return res.status(200).json({
+            status: true,
+            message: 'Loan applications retrieved successfully',
+            data: loans
+        });
+        
+    } catch (error) {
+        logger.error('fetchAllLoanHistory: Error fetching loan history', {
+            message: error.message,
+            response: error.response ? error.response.data : null
+        });
+        return res.status(500).json({ status: false, message: error.response?.data?.message || 'Error fetching loan history' });
+    }
+}
+
+
+const fetchLoanDetails = async (req, res) => {
+    const userid = req.user.id;
+    if (!userid) return res.status(400).json({ status: false, message: 'Eh! Invalid request sent!' });
+
+    const { reference } = req.params;
+    if (!reference) return res.status(400).json({ status: false, message: 'Loan reference is required' });
+
+    try {
+        const loan = await LoanApply.findOne({ where: { userid: userid, reference: reference } });
+        if (!loan) {
+            return res.status(404).json({ status: false, message: 'Loan application not found' });
+        }
+
+        // only return few details
+        const formattedLoan = {
+            amount: loan.amount,
+            offeramount: loan.offeramount,
+            duration: loan.duration,
+            downpayment: loan.downpayment,
+            loantype: loan.loantype,
+            interest: loan.interest,
+            totalint: loan.totalint,
+            totalpayback: loan.totalpayback
+            
+        };
+
+        return res.status(200).json({
+            status: true,
+            message: 'Loan details retrieved successfully',
+            data: formattedLoan
+        });
+
+        
+    } catch (error) {
+        logger.error('fetchLoanHistory: Error fetching loan history ', {
+            message: error.message,
+            response: error.response ? error.response.data : null
+        });
+        return res.status(500).json({ status: false, message: error.response?.data?.message || 'Error fetching loan history' });
+    }
+    
+}
+
+
+
+
 
 module.exports = {
-    fetchTuitionsLoan, getLoanEligibility, fetchSchools, fetchFaculties, submitLoanApplication
+    fetchTuitionsLoan, getLoanEligibility, fetchSchools, fetchFaculties, 
+    submitLoanApplication, fetchAllLoanHistory, fetchLoanDetails
+
 
 }

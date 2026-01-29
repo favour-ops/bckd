@@ -5,9 +5,11 @@ const http = require('https');
 const Notify = db.notify;
 const axios = require('axios');
 const qs = require('qs');
+// const bcrypt = require('bcryptjs');
 
 const twilio = require('twilio');
 const {getAdminInfo, getUserInfo} = require("./userdetails");
+const { logger } = require('./logger');
 
 const notifyMe = async(uid, header, usertype, content)=>{
     let timed = new Date();
@@ -233,7 +235,97 @@ const pushNotify = async (userid, title, msg, usertype = 'personal') => {
     }
 };
 
-
 // pushNotify(1, 'welcome', 'testing')
+
+const sendWhatsAppOTP = async (phone, otp) => {
+try{
+  var intlphn = await formatPhoneNo(phone);
+  const url = ``;
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: intlphn, // format: 2348012345678
+    type: "template",
+    template: {
+      name: "otp_verification",
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: process.env.SITENAME },
+            { type: "text", text: otp },
+            { type: "text", text: "5" } // expiry minutes
+          ]
+        }
+      ]
+    }
+  };
+
+        const options = {
+            method: 'POST',
+            url: `https://graph.facebook.com/v19.0/${process.env.PHONE_NUMBER_ID}/messages`,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`
+            },
+            data: JSON.stringify(payload)
+        };
+          
+  
+        // Make API request
+        const response = await axios.request(options);
+        const responseData = response.data;
+        const jsonString = JSON.stringify(responseData);
+        // console.log(jsonString);
+
+
+//   await axios.post(url, payload, {
+//     headers: {
+//       Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+//       "Content-Type": "application/json"
+//     }
+//   });
+
+}catch(error){
+    if (error.response?.status === 401) {
+    // Token revoked or invalid
+    console.log('WhatsApp token is invalid or revoked');
+
+    } else {
+    // Handle other errors
+    logger.error('sendWhatsAppOTP: Error sending WhatsApp OTP', error)
+    }
+}
+};
+
+
+const generateOTP = async () => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//   const hash = await bcrypt.hash(otp, 10);
+
+  console.log('OTP:', otp);
+  sendWhatsAppOTP('07068363556', otp);
+//   console.log('Hash:', hash);
+
+
+//   otpStore.set(phone, {
+//     hash,
+//     expiresAt: Date.now() + 5 * 60 * 1000 // 5 mins
+//   });
+
+  return otp;
+};
+
+
+/* generateOTP()
+.then(result => {
+    console.log("API result:", result);
+})
+.catch(err => console.error("Script execution failed:", err))
+.finally(async () => {
+
+});
+ */
 
 module.exports = {notifyMe, sendSMS, sendWhatsApp, pushNotify};
