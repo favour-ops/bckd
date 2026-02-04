@@ -83,7 +83,7 @@ const createCustomerEnroll = async (userid, customerData) => {
                 "last": customerData.lastname,
                 "full": `${customerData.firstname} ${customerData.lastname}`
             },
-            "phone_number": formatPhoneNumber(customerData.phoneno),
+            "phone_number": `+1${customerData.phoneno}`,
             "email_address": customerData.email
         };
 
@@ -440,31 +440,66 @@ const initiateCustomerAccount = async (req, res) => {
         } else {
 
             const cybridCustomerGuid = customerRecord.trackingid;
-            const checkDetails = await getCybridCustomerDetails(cybridCustomerGuid);  //second call
+            if (customerRecord && customerRecord.trackingid && customerRecord.verification_id) {
 
-            if (!checkDetails[0]) {
-                logger.error(`create customer 2: Failed to retrieve customer remittance details for internal user ${userid}.`);
-                return res.status(500).json({ status: false, message: checkDetails[2] || 'Failed to retrieve customer remittance details.' });
+                const checkVerStatus = await getIdentityVerificationStatus(customerRecord.verification_id);
 
-            } else {
+                if (!checkVerStatus[0]) {
+                    return res.status(500).json({ status: false, message: checkVerStatus[2] || 'Unable to retrieve customer identity verification status.' });
 
-                var customerState = checkDetails[1];
-                logger.info(`create customer 2: Cybrid customer details retrieved successfully for internal user ${userid}. State: ${customerState}`);
+                } else {
 
-                return res.status(200).json({
-                    status: true,
-                    message: 'Customer account re-initiated.',
-                    data: {
-                        customer_guid: cybridCustomerGuid,
-                        customer_state: customerState,
-                        persona_state: 'null',
-                        verification_id: null,
-                        persona_inquiry_id: null,
-                        link_token: null,
-                        link_state: null
-                    }
-                });
+                    var verState = checkVerStatus[1];
+                    var persona_inquiry_id = checkVerStatus[2];
+                    var customer_guid = checkVerStatus[3];
+                    var country_code = checkVerStatus[4];
+                    var method = checkVerStatus[5];
+                    var persona_state = checkVerStatus[6];
+
+                     return res.status(200).json({
+                        status: true,
+                        message: 'Customer account verification status.',
+                        data: {
+                            customer_guid: cybridCustomerGuid,
+                            customer_state: customerRecord.verstate == 'completed' ? 'verified' : customerRecord.verstate,
+                            persona_state: persona_state,
+                            verification_id: customerRecord.verification_id,
+                            persona_inquiry_id: persona_inquiry_id,
+                            link_token: null,
+                            link_state: null
+                        }
+                    });
+                }
+
+            }else{
+                const checkDetails = await getCybridCustomerDetails(cybridCustomerGuid);  //second call
+    
+                if (!checkDetails[0]) {
+                    logger.error(`create customer 2: Failed to retrieve customer remittance details for internal user ${userid}.`);
+                    return res.status(500).json({ status: false, message: checkDetails[2] || 'Failed to retrieve customer remittance details.' });
+    
+                } else {
+    
+                    var customerState = checkDetails[1];
+                    logger.info(`create customer 2: Cybrid customer details retrieved successfully for internal user ${userid}. State: ${customerState}`);
+    
+                    return res.status(200).json({
+                        status: true,
+                        message: 'Customer account re-initiated.',
+                        data: {
+                            customer_guid: cybridCustomerGuid,
+                            customer_state: customerState,
+                            persona_state: 'null',
+                            verification_id: null,
+                            persona_inquiry_id: null,
+                            link_token: null,
+                            link_state: null
+                        }
+                    });
+                }
+
             }
+            
         }
     } catch (error) {
         // console.log(error);
@@ -518,7 +553,7 @@ const initiateVerification = async (req, res) => {
                     message: 'Customer remittance account retrieved successfully.',
                     data: {
                         customer_guid: customerRecord.trackingid,
-                        customer_state: customerRecord.verstate,
+                        customer_state: customerRecord.verstate == 'completed' ? 'verified' : customerRecord.verstate,
                         persona_state: persona_state,
                         verification_id: customerRecord.verification_id,
                         persona_inquiry_id: persona_inquiry_id,
@@ -1402,9 +1437,7 @@ const verifyExternalBankAccount = async (customerGuid, externalBankGuid) => {
             "type": "bank_account",
             "method": "account_ownership",
             "customer_guid": customerGuid,
-            "external_bank_account_guid": externalBankGuid,
-            "expected_behaviours": ["passed_immediately"]
-
+            "external_bank_account_guid": externalBankGuid
         };
 
         // console.log('dadadata', data)
@@ -1497,7 +1530,7 @@ const getLinkedBankList = async (req, res) => {
 
             if (thedata && thedata.objects) {
                 const simplifiedList = thedata.objects
-                    .filter(bank => bank.state !== 'failed')
+                    .filter(bank => bank.state !== 'failed' && bank.state !== 'deleted')
                     .map(bank => ({
                         guid: bank.guid,
                         asset: bank.asset,
@@ -1753,7 +1786,7 @@ const doCybridBankDeposit = async (amount, accountid, userid, sendingAmount, ref
 
             if (!getRemittance) {
                 logger.error('doCybrid BankDeposit: Failed to get remittance account for the deposit.', getRemittance);
-                return [false, 'Remittance account not found.'];
+                return [false, 'Bank account not in active state.'];
             }
 
             // log to the RemittancePay
@@ -1859,7 +1892,7 @@ const doCybridBankDeposit = async (amount, accountid, userid, sendingAmount, ref
             }
 
         } else {
-            return [false, 'No remittance account found for this customer.'];
+            return [false, 'No account found for this customer.'];
         }
 
     } catch (error) {
@@ -1935,7 +1968,7 @@ const getRemittancePayStatus = async (req, res) => {
         const getPay = await Payn.findOne({ where: { userid: userid, txref: reference } });
 
         if (!getPay) {
-            return res.status(400).json({ status: false, message: 'No remittance record found.' });
+            return res.status(400).json({ status: false, message: 'No record found.' });
         }
 
         const depositGuid = getPay.provref;
@@ -1949,7 +1982,7 @@ const getRemittancePayStatus = async (req, res) => {
 
         const getRemittancePay = await RemittancePay.findOne({ where: { deposit_guid: depositGuid, userid: userid } });
         if (!getRemittancePay) {
-            return res.status(400).json({ status: false, message: 'No remittance payment record found for the provided deposit id' });
+            return res.status(400).json({ status: false, message: 'No payment record found for the provided deposit id' });
         }
         
         payStatus = getRemittancePay.status == 'storing' ? 'pending' : getRemittancePay.status;
@@ -1957,7 +1990,7 @@ const getRemittancePayStatus = async (req, res) => {
         //only return the status and relevant fields
         return res.status(200).json({
             status: true,
-            message: 'Remittance pay record retrieved successfully',
+            message: 'Global transfer record retrieved successfully',
             data: {
                 amount: getRemittancePay.amount,
                 fee: getRemittancePay.fee,
@@ -1978,13 +2011,86 @@ const getRemittancePayStatus = async (req, res) => {
             message: error.message,
             response: error.response ? error.response.data : null
         });
-        return res.status(500).json({ status: false, message: error.response?.data?.error_message || error.response?.data?.message || 'Error retrieving remittance pay status.' });
+        return res.status(500).json({ status: false, message: error.response?.data?.error_message || error.response?.data?.message || 'Error retrieving payment status.' });
     }
 }
+
+
+const removeLinkedBank = async(req, res)=>{
+    const userid = req.user.id;
+    if (!userid) return res.status(400).json({ status: false, message: 'Eh! Invalid request sent!' });
+    
+    const { accountid } = req.params;
+    if (!accountid)
+        return res.status(400).json({ status: false, message: 'Kindly provide the bank account ID to remove.' });
+
+    try {
+        // Check if the bank account belongs to the user
+        const customerRecord = await ExternaUser.findOne({ where: { userid: userid, provider: 'cybrid' } });
+        if (!customerRecord) {
+            return res.status(400).json({ status: false, message: 'No remittance account found for this user.' });
+        }
+
+        const cybridCustomerGuid = customerRecord.trackingid;
+        const getRemittance = await RemittanceAccounts.findOne({ where: { external_bank_guid: accountid, customer_guid: cybridCustomerGuid } });
+
+        if (!getRemittance) {
+            return res.status(400).json({ status: false, message: 'Bank account not found or does not belong to you.' });
+        }
+
+        // Get access token
+        const [tokenSuccess, access_token] = await getCybridAccessToken();
+        if (!tokenSuccess) {
+            return res.status(400).json({ status: false, message: 'Failed to connect to the partner bank' });
+        }
+
+        const options = {
+            method: 'DELETE',
+            url: `${process.env.CYBRID_API_BASEURL2}/api/external_bank_accounts/${accountid}`,
+            headers: {
+                accept: 'application/json',
+                "Authorization": "Bearer " + access_token
+            }
+        };
+
+        let response = await axios.request(options);
+        let thedata = response.data;
+
+        // Log the response
+        await LogResponse.create({ ownerid: userid, reference: accountid, jsonresp: JSON.stringify(thedata), timed: '', product: 'cybextbankdelete', provider: 'cybd' });
+
+        // Update local record status
+        await RemittanceAccounts.update({ status: 3, external_bank_state: 'deleted' }, { where: { external_bank_guid: accountid } });
+
+        return res.status(200).json({
+            status: true,
+            message: 'Bank account successfully removed.'
+        });
+
+    } catch (error) {
+        logger.error('removeLinkedBank: Error removing linked bank', {
+            message: error.message,
+            response: error.response ? error.response.data : null
+        });
+
+        return res.status(500).json({ status: false, message: error.response?.data?.error_message || error.response?.data?.message || 'Error removing linked bank account.'})
+    }
+}
+
+/* removeLinkedBank('38e1cc50b66a2c847fb7109df1a147ff')
+.then(result => {
+    console.log("API result:", result);
+})
+.catch(err => console.error("Script execution failed:", err))
+.finally(async () => {
+    // Optional: Close database connection if this is a standalone script
+    // await db.sequelize.close();
+});
+ */
 
 
 //========================EXPORT MODULES======================
 module.exports = {
     initiateCustomerAccount, initiateVerification, initiateAccountLink, createExternalBank, ExternalBankVerification, getLinkedBankList,
-    processBankDeposit, doCybridBankDeposit, getRemittancePayStatus
+    processBankDeposit, doCybridBankDeposit, getRemittancePayStatus, removeLinkedBank
 }

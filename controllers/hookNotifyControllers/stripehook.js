@@ -165,6 +165,7 @@ const stripeWebhkHandlerTest = async (req, res) => {
             const network = getPayn.ntwk;
             const userid = getPayn.userid;
             const accountname = payload.accountname;
+            const paycurrency = getPayn.currency;
 
             if (network == 'NG') {
                 var provider = 'safehaven';
@@ -205,7 +206,7 @@ const stripeWebhkHandlerTest = async (req, res) => {
                         where: { txref: txref, userid: userid }
                     });
 
-                    pushNotify(userid, 'Transaction Notice - HitchPay', `Your NGN${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`);
+                    pushNotify(userid, 'Transaction Notice - HitchPay', `Your ${paycurrency}${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`);
 
                     console.log(`[Webhook] Successfully processed for ${deposit_guid} `);
 
@@ -214,26 +215,26 @@ const stripeWebhkHandlerTest = async (req, res) => {
                     const useremail = userinfo.email;
                     const fname = userinfo.firstname;
 
-                    const notedesc = `Your NGN${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`;
+                    const notedesc = `Your ${paycurrency}${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`;
 
-                    await notifyMe(userid, 'NGN Transfer Completed', 'user', notedesc);
+                    await notifyMe(userid, `${paycurrency} Transfer Completed`, 'user', notedesc);
 
                     const mailcontent = `
                         <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Dear ${fname},</p>
-                        <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Your NGN transfer of <strong>NGN ${formatAmount(amount)}</strong> to <strong>${accountname}</strong> has been successfully completed.</p>
+                        <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Your ${paycurrency} transfer of <strong>${paycurrency} ${formatAmount(amount)}</strong> to <strong>${accountname}</strong> has been successfully completed.</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Recipient Name:</strong> ${accountname}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Recipient Account:</strong> ${recipientno}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Bank:</strong> ${bankcode}</p>
-                        <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Amount Sent:</strong> NGN ${formatAmount(amount)}</p>
+                        <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Amount Sent:</strong> ${paycurrency} ${formatAmount(amount)}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Transaction Reference:</strong> ${txref}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Date:</strong> ${moment.unix(dtimed).format("Do MMM, YYYY hh:mm a")}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;">You can view the details of this transaction in your HitchPay account.</p>
                         <p style="font-weight: 700; text-align: left">Sincerely,<br> The HitchPay Team</p>
                     `;
-                    await mailSender(fname, 'NGN Transfer Completed', useremail, mailcontent);
+                    await mailSender(fname, `${paycurrency} Transfer Completed`, useremail, mailcontent);
 
                 } else {
-                    logger.error(`stripe Webhook: NGN Transfer failed for deposit_guid: ${deposit_guid}. Response: ${JSON.stringify(ftApiResponse)}`);
+                    logger.error(`stripe Webhook: ${paycurrency} Transfer failed for deposit_guid: ${deposit_guid}. Response: ${JSON.stringify(ftApiResponse)}`);
                 }
 
             } else {
@@ -482,6 +483,7 @@ const stripeWebhkLive = async (req, res) => {
             const network = getPayn.ntwk;
             const userid = getPayn.userid;
             const accountname = payload.accountname;
+            const paycurrency = getPayn.currency;
 
             if (network == 'NG') {
                 var provider = 'safehaven';
@@ -522,7 +524,7 @@ const stripeWebhkLive = async (req, res) => {
                         where: { txref: txref, userid: userid }
                     });
 
-                    pushNotify(userid, 'Transaction Notice - HitchPay', `Your NGN${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`);
+                    pushNotify(userid, 'Transaction Notice - HitchPay', `Your ${paycurrency}${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`);
 
                     console.log(`[Webhook] Successfully processed for ${deposit_guid} `);
 
@@ -531,26 +533,26 @@ const stripeWebhkLive = async (req, res) => {
                     const useremail = userinfo.email;
                     const fname = userinfo.firstname;
 
-                    const notedesc = `Your NGN${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`;
+                    const notedesc = `Your ${paycurrency}${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successfully received.`;
 
-                    await notifyMe(userid, 'NGN Transfer Completed', 'user', notedesc);
+                    await notifyMe(userid, `${paycurrency} Transfer Completed`, 'user', notedesc);
 
                     const mailcontent = `
                         <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Dear ${fname},</p>
-                        <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Your NGN transfer of <strong>NGN ${formatAmount(amount)}</strong> to <strong>${accountname}</strong> has been successfully completed.</p>
+                        <p style="line-height: 30px; letter-spacing: 0.025em; font-size: 15px;">Your ${paycurrency} transfer of <strong>${paycurrency} ${formatAmount(amount)}</strong> to <strong>${accountname}</strong> has been successfully completed.</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Recipient Name:</strong> ${accountname}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Recipient Account:</strong> ${recipientno}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Bank:</strong> ${bankcode}</p>
-                        <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Amount Sent:</strong> NGN ${formatAmount(amount)}</p>
+                        <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Amount Sent:</strong> ${paycurrency} ${formatAmount(amount)}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Transaction Reference:</strong> ${txref}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;"><strong>Date:</strong> ${moment.unix(dtimed).format("Do MMM, YYYY hh:mm a")}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em; font-size: 15px;">You can view the details of this transaction in your HitchPay account.</p>
                         <p style="font-weight: 700; text-align: left">Sincerely,<br> The HitchPay Team</p>
                     `;
-                    await mailSender(fname, 'NGN Transfer Completed', useremail, mailcontent);
+                    await mailSender(fname, `${paycurrency} Transfer Completed`, useremail, mailcontent);
 
                 } else {
-                    logger.error(`stripe Webhook: NGN Transfer failed for deposit_guid: ${deposit_guid}. Response: ${JSON.stringify(ftApiResponse)}`);
+                    logger.error(`stripe Webhook: ${paycurrency} Transfer failed for deposit_guid: ${deposit_guid}. Response: ${JSON.stringify(ftApiResponse)}`);
                 }
 
             } else {

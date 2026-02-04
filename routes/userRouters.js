@@ -33,6 +33,7 @@ const KycController = require("../controllers/kycController");
 const crossBorderControllers = require("../controllers/crossBorderControllers");
 const remittanceControllers = require("../controllers/remittanceControllers");
 const loanControllers = require("../controllers/loanControllers");
+const savingsControllers = require("../controllers/savingsControllers");
 
 const multer = require("multer");
 const { json } = require("sequelize");
@@ -196,7 +197,7 @@ router.post('/verifyus', standardMiddleChecks, KycController.initVeriff);
 router.get("/yccountrylist", standardMiddleChecks, crossBorderControllers.supportedCountries);
 router.get("/getycchannel", standardMiddleChecks, crossBorderControllers.getChannels);
 router.get("/getycnetworks", standardMiddleChecks, crossBorderControllers.getNetworks);
-router.get("/getycrate", standardMiddleChecks, crossBorderControllers.getRate);
+router.get("/getycrate", sensitiveMiddleChecks, crossBorderControllers.getRate);
 router.post("/globaldisburse", standardMiddleChecks, crossBorderControllers.initiatePayment);
 router.post("/globalcollections", standardMiddleChecks, crossBorderControllers.initiateCollections);
 router.get("/collstatus/:reference", standardMiddleChecks, crossBorderControllers.getCollectionLookup);
@@ -212,6 +213,7 @@ router.get("/getlinkedbank", standardMiddleChecks, remittanceControllers.getLink
 router.post("/globaldisburse", standardMiddleChecks, crossBorderControllers.initiatePayment);  //process deposit
 router.post("/transauth", standardMiddleChecks, userController.validatMFAAuth);  //process deposit
 router.get("/rempaystatus/:reference", standardMiddleChecks, remittanceControllers.getRemittancePayStatus);  //process deposit
+router.get("/removelinkbank/:accountid", standardMiddleChecks, remittanceControllers.removeLinkedBank);  
 
 /* REMITTANCE CARD */
 router.get("/initcardlink", standardMiddleChecks, remittanceControllers.initiatCardLink);  //initiate card link
@@ -226,7 +228,19 @@ router.get("/faculties/:schoolid", standardMiddleChecks, loanControllers.fetchFa
 router.post("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);
 router.post("/submitbnpl_loan", standardMiddleChecks, uploads.single('fileupload'), loanControllers.submitLoanApplication);  //process deposit
 router.get("/loanhistory", standardMiddleChecks, loanControllers.fetchAllLoanHistory);
-router.get("/loandetails/:reference", standardMiddleChecks, loanControllers.fetchLoanDetails);
+router.get("/loanhistory/:reference", standardMiddleChecks, loanControllers.fetchLoanDetails);
+router.post("/dorepay", standardMiddleChecks, loanControllers.repayLoan); 
+
+
+
+/* SAVINGS & LOCKS */
+router.get("/savingsplans", standardMiddleChecks, savingsControllers.getLockPlans);
+router.post("/savedeposit", standardMiddleChecks, savingsControllers.createSavings);
+router.get("/getsavings", standardMiddleChecks, savingsControllers.getSavings);
+router.get("/getsavings/:savingsid", standardMiddleChecks, savingsControllers.getSavingsDetails);
+router.post("/savetopup", standardMiddleChecks, savingsControllers.topUpSavings);
+router.post("/savewithdraw", standardMiddleChecks, savingsControllers.withdrawSavings);
+
 
 
 // router.get("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);  //process deposit

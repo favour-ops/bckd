@@ -296,7 +296,7 @@ const customerPaymentList = async (req, res) => {
                 });
 
             } else {
-                logger.error('customerPaymentList: Failed to retrieve Strp customer payment methods.', paymentMethods);
+                logger.error('customer PaymentList: Failed to retrieve Strp customer payment methods.', paymentMethods);
                 return res.status(500).json({ status: false, message: 'Failed to retrieve customer payment methods' });
             }
 
@@ -316,6 +316,8 @@ const customerPaymentList = async (req, res) => {
     }
 
 }
+
+
 
 
 const createPaymentIntent = async (userid, paymentid, amount, tocharge, reference) => {
@@ -516,25 +518,25 @@ const verifyPaymentIntent = async (req, res) => {
 }
 
 
-const dodebugg = async()=>{
-    const webhookEndpoint = await stripe.webhookEndpoints.list({
-        limit: 10
-         
-});
+const dodebugg = async(customerid)=>{
+    const paymentMethods = await stripe.customers.listPaymentMethods(
+                customerid,
+                { limit: 10, }
+            );
 
-        logger.error(webhookEndpoint);
-        return webhookEndpoint
+        logger.error(paymentMethods);
+        return paymentMethods
 }
 
-// dodebugg('818', 'pm_1SrxE5JcP7cE1CBejkjyaJEs', '10')
-// .then(result => {
-//     console.log("API result:", result);
-// })
-// .catch(err => console.error("Script execution failed:", err))
-// .finally(async () => {
-//     // Optional: Close database connection if this is a standalone script
-//     // await db.sequelize.close();
-// });
+/* dodebugg('cus_TszlxbhfRG5FQt')
+.then(result => {
+    console.log("API result:", result);
+})
+.catch(err => console.error("Script execution failed:", err))
+.finally(async () => {
+    // Optional: Close database connection if this is a standalone script
+    // await db.sequelize.close();
+}); */
 
 
 module.exports = {

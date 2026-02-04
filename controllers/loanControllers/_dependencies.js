@@ -28,8 +28,9 @@ const {
     faculties: Faculty,
     departments: Dept,
     tuitions: TuitionFees,
-    loanapply: LoanApply
-
+    loanapply: LoanApply,
+    loanplans: LoanPlans,
+    loanrepay: LoanRepay
 
 } = db;
 
@@ -39,5 +40,5 @@ module.exports = {
     formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, logger,
     cloudinary, firebaseUpload, AWSFileUpload, formatPhoneNumber,
     Customer, Business, Wallets, Payn, AppSett, LogRequest, getBal, updateBalance,
-     getUserInfo, LogResponse, Faculty, Dept, TuitionFees, LoanApply, publicCDN_Fx, getYCFX, mapleradFx
+     getUserInfo, LogResponse, Faculty, Dept, TuitionFees, LoanApply, publicCDN_Fx, getYCFX, mapleradFx, LoanPlans, LoanRepay
 };

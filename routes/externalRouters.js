@@ -72,6 +72,7 @@ router.get("/notifypending/:secret", cronLimiter, productController.notifyPendin
 router.post("/xbodwhgkyc44", generalApiLimiter, crossBorderControllers.theYcWebhook);  //prod
 router.post("/whk98prvd", generalApiLimiter, hookNotifyControllers.prvdNotify);
 router.post("/cybdywhk98tst", generalApiLimiter, hookNotifyControllers.CybdWbkNotifyTest); //test
+router.post("/cybdwhk938prd", generalApiLimiter, hookNotifyControllers.CybdWbkNotifyProd); //test
 router.post("/whgk45sqdtst", generalApiLimiter, hookNotifyControllers.SqdTransNotify);  //test
 
 

@@ -1,5 +1,5 @@
-const buynow = require('./buynow');
+const savings = require('./savings');
 
 module.exports = {
-  ...buynow
+  ...savings
 };

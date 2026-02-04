@@ -40,6 +40,7 @@ const AcctRequest = db.accountrequest;
 const Bank = db.bankacct;
 const Benefit = db.benefit;
 
+
 const getExchange = async (req, res) => {
     const { currency_from, currency_to, amount, type } = req.body
 
@@ -63,6 +64,7 @@ const getExchange = async (req, res) => {
     }
 
     const getrate = await getFX(currency_from, currency_to, amount, marginAction);
+    // console.log('getrate', getrate)
     if (getrate[0]) {
         var rate = getrate[1];
         var quoteid = getrate[2];
@@ -112,6 +114,7 @@ const getExchange = async (req, res) => {
         } else {
             ourfee = parseFloat(dollarfee) * parseFloat(rate); // Convert USD fee to target currency (e.g., NGN)
         }
+
         final_amount = converted_amount - ourfee;
     }
 
@@ -134,8 +137,161 @@ const getExchange = async (req, res) => {
     })
 }
 
-
 const fundSwap = async (req, res) => {
+    try {
+
+        const userid = req.user.id;
+        if (!userid) return res.status(400).json({ status: false, message: 'Oops! Invalid request sent!' });
+
+        const { curryfrom, curryto, amount, transpin } = cleanMe(req.body);
+
+        const userinfo = await getUserInfo(userid);  // get user info
+        const authpin = userinfo.authpin;
+
+        if (!authpin)
+            return res.status(400).json({ status: false, message: 'Invalid Authentication PIN' });
+
+        if (!transpin || (transpin == '')) return res.status(400).json({ status: false, message: 'Invalid Authentication PIN' });
+
+        const checkwithHashPwd = bcrypt.compareSync(transpin, authpin); // true
+
+        if (!checkwithHashPwd)
+            return res.status(400).json({ status: false, message: 'Invalid Authentication PIN' });
+
+        if (!curryfrom || curryfrom == '' || !curryto || curryto == '')
+            return res.status(400).json({ status: false, message: 'Source and target currency is required' });
+
+        if (curryfrom.toLowerCase() == curryto.toLowerCase())
+            return res.status(400).json({ status: false, message: 'Invalid currency pair' });
+
+
+        if (!amount || amount == '')
+            return res.status(400).json({ status: false, message: 'Kindly enter a valid amount' });
+
+        if (amount <= 0)
+            return res.status(400).json({ status: false, message: 'Kindly enter a valid amount' });
+
+        //create the card
+        const getsett = await AppSett.findOne({ where: { id: 1 } });
+
+        if (!getsett)
+            return res.status(400).json({ status: false, message: 'Unable to process request. Kindly retry' });
+
+        if (getsett.dollarfee <= 0)
+            return res.status(400).json({ status: false, message: 'Unable to get exchange fee. Kindly contact our support' });
+
+
+        var fee = getsett.dollarfee; //e.g 5
+        var getrate = await getFX(curryfrom, curryto, amount, '');
+
+        var rate = getrate[1];
+        var quoteid = getrate[2];
+
+        const txref = 'HTC' + md5(randomstring.generate(3) + userid).toUpperCase().substring(0, 10);
+        let timed = Date.parse(new Date()) / 1000;
+
+        //debit amount
+        let network = curryfrom + curryto;
+        let currency = curryfrom;
+        let todebit = amount;
+        let convertAmount = amount * rate;
+
+        // calculate fee
+        if(curryto == 'USD'){
+            var chargefee = fee; //fixed amount
+            var calculatedProfit = (fee / rate);   //e.g 5/0.00158730158 to NGN
+        }else{
+            var chargefee = fee * rate;
+            var calculatedProfit = fee * rate; //to NGN
+        }
+
+        let tosettle = convertAmount - chargefee;
+        let targetCurrency = curryto;
+        let paidthru = `${currency} Wallet`;
+
+        if(tosettle <= 0){
+            return res.status(400).json({status: false, message: 'Invalid settlement amount' });
+        }
+
+        // GET SENDING BALANCE
+        const userbal = await getBal(userid, curryfrom);
+
+        if (userbal > 0 && userbal >= todebit) {
+
+            // --- Phase 1: Debit User and Log Initial Transaction ---
+            const debitTransaction = await db.sequelize.transaction();
+            let initialDebitLog;
+
+            try {
+                // DEBIT THE CONVERSION
+                const newbal = await updateBalance(userid, todebit, currency, 'debit', { transaction: debitTransaction }, true);
+                const pay_desc = `Fund exchange of ${currency} ${formatAmount(amount)}`;
+
+                initialDebitLog = await Payn.create({
+                    userid: userid, amount: todebit, amountval: todebit, newbal: newbal, prevbal: userbal, currency: currency,
+                    txref: txref, pfor: 'fundconvert', usertype: 'user', paytype: 'debit', productid: rate, ntwk: network,
+                    paidthru: paidthru, pay_desc: pay_desc, timed: timed, status: 0, // Status 0 for Pending
+                    recipient: '', fee: '0', paychannel: 'Hitchpay', revenue: 0
+                }, { transaction: debitTransaction });
+
+                
+                // CREDIT THE SWAP
+                const targetUserbal = await getBal(userid, targetCurrency, { transaction: debitTransaction });
+                const targetNewbal = await updateBalance(userid, tosettle, targetCurrency, 'credit', { transaction: debitTransaction }, true);
+
+                // Update original debit transaction to success
+                await Payn.update({ status: 1, productid: '' }, { where: { id: initialDebitLog.id }, transaction: debitTransaction });
+
+                // const revenue = parseFloat(chargefee) * rate;
+                const revenue = parseFloat(calculatedProfit);
+                const meta_data = JSON.stringify({ rate: parseFloat(rate), amount: amount, ourfee: chargefee, revenuengn: revenue});
+
+                // Log the credit part of the swap
+                const targetReference = `${txref}_${targetCurrency}`;
+
+                const narration = `Fund exchange settlement for ${currency} ${formatAmount(amount)}`;
+                await Payn.create({
+                    userid: userid, recipient: '', amount: tosettle, amountval: tosettle, currency: targetCurrency, newbal: targetNewbal, prevbal: targetUserbal, txref: targetReference, pfor: 'fundconvert', paytype: 'credit', productid: rate, paychannel: 'Hitchpay', paidthru: '', meta: meta_data, ntwk: network, pay_desc: narration, timed: timed, status: 1, name: '', ntwkid: '', fee: chargefee, narration: narration, revenue: revenue, providerfee: 0, settlement_route: 'dollar'
+                }, { transaction: debitTransaction });
+
+                await debitTransaction.commit();
+
+                return res.json({
+                    status: true,
+                    message: "Fund Conversion Successful",
+                    data: {
+                        transref: txref,
+                        transtimed: moment.unix(timed).format("Do MMM, YYYY hh:mm a"),
+                        paystatus: 'Successful',
+                        settleAmount: tosettle,
+                        debitedAmount: todebit,
+                        fee: chargefee,
+                        network: network
+                    }
+                });
+
+
+            } catch (debitError) {
+                await debitTransaction.rollback();
+                console.error(`[${txref}] Fund Swap Debit Error:`, debitError.message);
+                return res.status(500).json({ status: false, message: 'Failed to debit account for swap. Please try again.' });
+            }
+            
+        } else {
+            return res.status(400).json({
+                status: false,
+                message: 'Insufficient balance to process currency ' + currency + formatAmount(amount)
+            })
+        }
+
+    } catch (error) {
+        res.json({ status: false, message: 'Unable to process exchange request at the moment' });
+        console.log("cfx Error: ", error.message);
+    }
+}
+
+
+const fundSwapOld = async (req, res) => {
     try {
 
         const userid = req.user.id;
@@ -340,25 +496,7 @@ const fundSwap = async (req, res) => {
     }
 }
 
-const mockTrans = async (cardid) => {
-    let config = {
-        method: 'POST',
-        url: `${process.env.MPLDURL}/test/issuing/${cardid}/mock-transaction`,
-        headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-            'Authorization': `Bearer ${process.env.MPLSKEY}`
-        },
-        data: { amount: 13000, type: 'DEBIT' }
-    };
 
-    let response = await axios.request(config);
-    let thedata = response.data;
-    const jsonString = JSON.stringify(thedata);
-    console.log(jsonString)
-    return jsonString;
-
-}
 /* mockTrans('dd576f7a-8a23-460a-9083-58c12555b7f5')
 .then(() => {
     console.log("Script finished.");

@@ -12,7 +12,7 @@ moment.tz.setDefault('Africa/Lagos');
 
 const { mailSender } = require('../../config/mailsender');
 const { notifyMe, sendSMS, pushNotify } = require("../../config/notifyuser");
-const { formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, updateBalance, formatPhoneNumber} = require("../../config/myfunct");
+const { formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, updateBalance, formatPhoneNumber, publicCDN_Fx, getYCFX, mapleradFx} = require("../../config/myfunct");
 const { logger } = require('../../config/logger');
 const { getBal, logBeneficiary, getUserInfo } = require("../../config/userdetails");
 const { cloudinary, firebaseUpload, AWSFileUpload } = require("../../config/imageuploads");
@@ -25,9 +25,11 @@ const {
     appsettings: AppSett,
     logrequest: LogRequest,
     logresponse: LogResponse,
-    savelock: SaveLock,
+    savelock: Savings,
     savingsads: savingsAds,
     kyc: KYC,
+    lockplans: LockPlans,
+    savehistory: SaveHistory
 
 } = db;
 
@@ -37,5 +39,5 @@ module.exports = {
     formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, logger,
     cloudinary, firebaseUpload, AWSFileUpload, formatPhoneNumber,
     Customer, Business, Wallets, Payn, AppSett, LogRequest, getBal, updateBalance,
-     getUserInfo, LogResponse, SaveLock, savingsAds, KYC
+     getUserInfo, LogResponse, Savings, savingsAds, KYC, LockPlans, publicCDN_Fx, SaveHistory
 };

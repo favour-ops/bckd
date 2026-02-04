@@ -1,4 +1,4 @@
-## What is HitchPay? (Layman’s Summary)
+# What is HitchPay? (Layman’s Summary)
 
 Imagine a digital engine that powers a modern bank. HitchPay is that engine. It is a **Financial Technology (FinTech)** platform that allows people and businesses to move money across borders, pay bills, and manage digital wallets.
 
