@@ -1,7 +1,7 @@
 node_modules
 .env
 env.env
-env2
+.env2
 .envtest
 .envlive
 config/serviceAccountKey.json
@@ -9,4 +9,5 @@ config/serviceAccountKey.json
 /routes/userRoutersDebugger.js
 logs
 /newrelic_agent.log
-newrelic_agent.log
+newrelic_agent.log.env2
+.env2
