@@ -1,12 +1,21 @@
 //========================IMPORT DEPENDENCIES======================
-const { Pay } = require('twilio/lib/twiml/VoiceResponse');
-const { logger, cleanMe, ucFirst, axios, moment, Customer, bcrypt, md5, randomstring, mailSender, notifyMe, pushNotify, Payn, AppSett, LogRequest, getBal, updateBalance, payWhk, logBeneficiary, formatPhoneNumber, KYC, KycDoc, publicCDN_Fx, getYCFX, mapleradFxc, checkTransAuth, RemittancePay, getUserInfo } = require('./dependencies');
+// const { Pay } = require('twilio/lib/twiml/VoiceResponse');
+const { axios, moment, Customer, bcrypt, md5, randomstring, Payn, AppSett, LogRequest, payWhk, KYC, KycDoc, RemittancePay, RemittanceAccounts } = require('./dependencies');
 const { ycRequest } = require('./ycauth');
 const crypto = require("crypto");
 // const { getCybridAccessToken } = require('../remittanceControllers/cybridauth');
 const { doCybridBankDeposit } = require('../remittanceControllers/customers');
 const { createPaymentIntent } = require('../remittanceControllers/stripe_remittance');
 const yccoverage = require('./yccoverage.json');
+
+
+const { mailSender } = require('../../config/mailsender');
+const { notifyMe, sendSMS, pushNotify } = require("../../config/notifyuser");
+const { formatAmount, cleanMe, ucFirst, updateBalance, formatPhoneNumber, checkTransAuth, getFX} = require("../../config/myfunct");
+const { logger } = require('../../config/logger');
+const { getBal, logBeneficiary, getUserInfo} = require("../../config/userdetails");
+const { cloudinary, firebaseUpload, AWSFileUpload } = require("../../config/imageuploads");
+
 
 const getUniqueCountries = () => {
     const allCountries = [...yccoverage.coverage.collections, ...yccoverage.coverage.disbursements];
@@ -58,6 +67,7 @@ const supportedCountries = async (req, res) => {
 // === STEP 1: Get Available Channels ===
 const getChannels = async (req, res) => {
     try {
+        console.log('req.query', req.query)
         const { countrycode, ramptype } = cleanMe(req.query);
 
         if (!countrycode) {
@@ -197,8 +207,8 @@ const fetchExchangeRate = async (sourceCurrency, destinationCurrency) => {
 
         if (sourceCurrency == 'USD') {
             // use the cdn rate
-            rateData = await publicCDN_Fx(sourceCurrency, destinationCurrency);  //usd to kes
-            // console.log('rateData', rateData)
+            
+            rateData = await getFX(sourceCurrency, destinationCurrency); 
             if (rateData[0]) {
                 crossRate = rateData[1];
                 sourcePerUsd = 0;
@@ -259,7 +269,7 @@ const fetchExchangeRate = async (sourceCurrency, destinationCurrency) => {
 };
 
 // debug fetchExchangeRate using usd and ngn
-/* checkTransAuth('USD', 'GHS')
+/* fetchExchangeRate('USD', 'NGN')
   .then(result => {     console.log("USD to NGN Rate:", result);
   })
   .catch(err => console.error("Script execution failed:", err))
@@ -388,6 +398,16 @@ const initiatePayment = async (req, res) => {
             const [isTokenValid, tokenMessage] = await checkTransAuth(userid, authtoken);
             if (!isTokenValid) {
                 return res.status(400).json({ status: false, message: tokenMessage });
+            }
+
+            // check the stat of the account id
+            const RemittanceAccountState = await RemittanceAccounts.findOne({ where: { external_bank_guid: paywith, userid: userid } });
+            
+            if (!RemittanceAccountState)
+            return res.status(400).json({ status: false, message: 'Your linked bank account not found. Kindly reload the page and try again.' });
+
+            if (RemittanceAccountState && RemittanceAccountState.verification_state != 'completed') {
+                return res.status(400).json({ status: false, message: 'Your linked bank account not in active state. Kindly contact our support.'});
             }
         }
 

@@ -14,8 +14,8 @@ const { mailSender } = require("./mailsender");
 const md5 = require('md5');
 const { ExtractJwt } = require('passport-jwt'); // Helper to extract token
 const { logger } = require('../config/logger');
-// const { ycRequest } = require('../controllers/crossBorderControllers/ycauth');
-const { ycRequest } = require('../config/ycClient'); // Corrected import path
+const { ycRequest } = require('../controllers/crossBorderControllers/ycauth');
+// const { ycRequest } = require('../config/ycClient'); // Corrected import path
 
 const PricingFee = db.pricing;
 const PayLimit = db.translimit
@@ -102,6 +102,10 @@ function cleanMe(input) {
     }
     // Return other types (numbers, booleans, null, undefined) as-is
     return input;
+}
+
+function cleanMe2(input) {
+    return input
 }
 
 const sanitizeInput = (obj) => {
@@ -2059,17 +2063,17 @@ const getFX = async (sourcefiat, targetfiat, amount = 100, marginAction = 'add')
        const appsett = await AppSett.findOne({ where: { id: 1 }});
         if (!appsett || !appsett.rateprovider) {
             logger.warn('FX rate provider not configured or disabled.');
-            return [false, 0, '']; // Feature is disabled or misconfigured
+            return [false, 0, '']; 
         }
 
          const { ratemargin_percent, rateprovider } = appsett;
-        let rateInfo = [false, 0, '']; // Default failure
-
+        let rateInfo = [false, 0, ''];
+        
         logger.info(`Fetching fresh exchange rates from API using ${rateprovider}.`);
 
         if (rateprovider === 'maplerad') {
             rateInfo = await mapleradFx(sourcefiat, targetfiat, amount);
-        } else if (rateprovider === 'yellocard') {
+        } else if (rateprovider === 'yellocard' || rateprovider == 'yellowcard') {
             rateInfo = await getYCFX(sourcefiat, targetfiat); // getYCFX doesn't use amount directly
         } else if (rateprovider === 'publicCDN') {
             rateInfo = await publicCDN_Fx(sourcefiat, targetfiat); // publicCDN_Fx doesn't use amount directly
@@ -2083,12 +2087,12 @@ const getFX = async (sourcefiat, targetfiat, amount = 100, marginAction = 'add')
             const originalRate = rateInfo[1];
             const margin = (parseFloat(ratemargin_percent) / 100) * originalRate;
 
-            if (marginAction === 'subtract') {
+            if (marginAction === 'subtract' || sourcefiat == 'USD') {
                 rateInfo[1] = originalRate - margin; // subtract margin (User receives less)
-                logger.info(`Applied -${ratemargin_percent}% margin. New rate: ${rateInfo[1]}`);
+                logger.info(`Applied -${ratemargin_percent}% margin. New rate: ${rateInfo[1]} from Provider rate of ${originalRate}`);
             } else {
                 rateInfo[1] = originalRate + margin; // add margin (User pays more)
-                logger.info(`Applied +${ratemargin_percent}% margin. New rate: ${rateInfo[1]}`);
+                logger.info(`Applied +${ratemargin_percent}% margin. New rate: ${rateInfo[1]} from Provider rate of ${originalRate}`);
             }
 
         }
@@ -2107,7 +2111,7 @@ const getFX = async (sourcefiat, targetfiat, amount = 100, marginAction = 'add')
 
 const mapleradFx = async (sourcefiat, targetfiat, amount) =>{
      try {
-        let amtdenom = 100;
+        let amtdenom = 1000;
         if (sourcefiat === 'USD' && targetfiat === 'NGN') {
             amtdenom = 100;
         } else if (sourcefiat === 'NGN' && targetfiat === 'USD') {
@@ -2133,10 +2137,13 @@ const mapleradFx = async (sourcefiat, targetfiat, amount) =>{
         );
 
         const data = response.data;
+        // console.log('data', data)
 
         if (data.status) {
             const rate = data.data.rate;
             const quoteid = data.data.reference;
+
+            logger.info(`MPLD FX Rate for ${sourcefiat}/${targetfiat}: ${rate}`);
             return [true, rate, quoteid];
         } else {
             return [false, 0, ''];
@@ -2183,6 +2190,8 @@ const publicCDN_Fx = async (sourcefiat, targetfiat) =>{
     }
 }
 
+
+/* YELLOW CARD RATE HERE ONLY WORKS WELL FOR NON USD PAIRS */
 const getYCFX = async (sourceCurrency, destinationCurrency, amount) => {
     try {
         if (!sourceCurrency || !destinationCurrency) {
@@ -2193,43 +2202,68 @@ const getYCFX = async (sourceCurrency, destinationCurrency, amount) => {
         const now = Date.now();
 
         const freshRateData = await ycRequest("GET", `/business/rates`);
+        // console.log('freshRateData', freshRateData)
+
         if (!freshRateData || !freshRateData.rates) {
             return [false, 0, 'Could not retrieve exchange rates from YellowCard.'];
         }
 
-        const sourceRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());
-        const destRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());
+        let sourceRateInfo;
+        let destRateInfo;
+        let crossRate = 0;
 
-        if (!sourceRateInfo) return [false, 0, `Exchange rate for source currency '${sourceCurrency}' not found.`];
-        if (!destRateInfo) return [false, 0, `Exchange rate for destination currency '${destinationCurrency}' not found.`];
+        if(sourceCurrency.toUpperCase() == 'USD'){
+            
+            destRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());  //extract
+            if (!destRateInfo) return [false, 0, `Exchange rate for destination currency '${destinationCurrency}' not found.`];
+            // console.log('freshRateData1', destRateInfo)
 
-        const sourcePerUsd = sourceRateInfo.sell;
-        const destPerUsd = destRateInfo.sell;
-        const crossRate = destPerUsd / sourcePerUsd;
+            const sourcePerUsd = 1;
+            const destPerUsd = destRateInfo.buy;
+            crossRate = destPerUsd / sourcePerUsd;
+            
+        }else if(destinationCurrency.toUpperCase() == 'USD'){
+            sourceRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());  //exrtact
+            if (!sourceRateInfo) return [false, 0, `Exchange rate for source currency '${sourceCurrency}' not found.`];
+            // console.log('freshRateData2', sourceRateInfo)
 
-        logger.info(`YellowCard FX Rate for ${sourceCurrency}/${destinationCurrency}: ${crossRate}`);
+            const sourcePerUsd = sourceRateInfo.buy;
+            const destPerUsd = 1;
+            crossRate = destPerUsd / sourcePerUsd;
+            
+        }else{
+            sourceRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());  //exrtact
+            destRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());  //extract
+
+            if (!sourceRateInfo) return [false, 0, `Exchange rate for source currency '${sourceCurrency}' not found.`];
+            if (!destRateInfo) return [false, 0, `Exchange rate for destination currency '${destinationCurrency}' not found.`];
+
+            const sourcePerUsd = sourceRateInfo.buy;
+            const destPerUsd = destRateInfo.buy;
+            crossRate = destPerUsd / sourcePerUsd;
+        }
+
+        // return freshRateData;
+
+        logger.info(`Yellow Card FX Rate for ${sourceCurrency}/${destinationCurrency}: ${crossRate}`);
         return [true, crossRate, ''];
     
-    /*     return {
-            status: true,
-            message: 'Exchange rate retrieved successfully.',
-            data: { 
-                source: sourceCurrency,
-                destination: destinationCurrency,
-                rate: crossRate, 
-                provider_rates: {
-                    source_vs_usd: sourcePerUsd, 
-                    destination_vs_usd: destPerUsd
-                },
-                last_updated: sourceRateInfo.updatedAt 
-            }
-        }; */
-    
     } catch (error) {
-        logger.error(`YellowCard FX fetch error: ${error.message}`, error);
+        logger.error(`Yellow Card FX fetch error`, error);
         return [false, 0, ''];
     }
 }
+
+
+/* getFX('USD', 'NGN', '100', 'subtract')
+.then(() => {
+    console.log("Script finished.");
+    process.exit(0);
+})
+.catch(err => {
+    console.error("Script failed with error:", err);
+    process.exit(1);
+}); */
 
 const checkinBonus = async (userId) => {
     const t = await db.sequelize.transaction();

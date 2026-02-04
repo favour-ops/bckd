@@ -2,9 +2,19 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { logger } = require('../config/logger');
 
+
+
+// const BASE_URL = process.env.YC_BASEURL;
+// const API_KEY = process.env.YC_PUBKEY;
+// const API_SECRET = process.env.YC_SECRET;
+
 const BASE_URL = !process.env.YC_BASEURL ? "https://sandbox.api.yellowcard.io" : process.env.YC_BASEURL;
 const API_KEY = !process.env.YC_PUBKEY ? "712003a266035b436b279b881488ee7c" : process.env.YC_PUBKEY;
 const API_SECRET = !process.env.YC_SECRET ? "541f0378820b663c968280676e14058ce732148008ebd2510974487fce04d68f" : process.env.YC_SECRET;
+
+// console.log('baseurl2', BASE_URL);
+// console.log('pubky2', API_KEY);
+// console.log('seky2',API_SECRET);
 
 // === HELPER: Generate HMAC Signature ===
 const generateSignature = async (method, path, body = "") => {

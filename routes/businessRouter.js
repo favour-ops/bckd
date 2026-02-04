@@ -110,7 +110,6 @@ router.get("/roles", NoauthMiddleChecks, businessController.getBusinessRolesAndP
 router.get("/wallets/:uuid", businessMiddleChecks, businessController.getBusinessWallets); //checkBusinessPermission('wallets:view')
 router.get("/payhistory/:uuid", businessMiddleChecks, businessController.getBusinessPaynTransactions);  //checkBusinessPermission('transactions:view')
 router.get("/payhistory/:uuid/:reference", businessMiddleChecks, checkBusinessPermission('transactions:view'), businessController.getBizTransDetails);
-router.get("/dashboard-stats/:uuid", businessMiddleChecks, businessController.getBusinessDashboardStats);
 
 router.get("/checkout-transactions/:uuid", businessMiddleChecks, checkBusinessPermission('transactions:view'), businessController.getBusinessCheckoutTransactions);
 router.get("/checkout-transdetails/:uuid/:reference", businessMiddleChecks, checkBusinessPermission('transactions:view'), businessController.getCheckoutTransactionDetails);

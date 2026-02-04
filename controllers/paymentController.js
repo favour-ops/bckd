@@ -13,7 +13,7 @@ const { getUserInfo, logAudit, logBeneficiary, getBal } = require("../config/use
 const { mailSender } = require("../config/mailsender");
 const { notifyMe, sendSMS, pushNotify } = require("../config/notifyuser");
 const { formatAmount, ucFirst, cleanMe, shAcessToken, psb9Token, getFee, TransLimit, FreeTransfersCount, updateBalance, calculateProfitAndFee,
-    logReferEarn, dailyBonus, toTwoDecimal, applyTaskBonus, applyCouponDiscount, checkTransAuth
+    logReferEarn, dailyBonus, toTwoDecimal, applyTaskBonus, applyCouponDiscount, checkTransAuth, getFX
 } = require("../config/myfunct");
 
 const { stringify } = require('querystring');
@@ -44,7 +44,7 @@ const Business = db.business;
 const CheckoutTrans = db.checkouttrans;
 const Settlements = db.settlements;
 const otpVer = db.verotp;
-
+const RemittanceAccounts = db.remittance_accounts;
 
 
 const processPaymentNew = async (req, res, next) => {
@@ -764,7 +764,7 @@ const transferPayment = async (req, res) => {
     const userid = req.user.id;
     let { amount, recipientno, bankname, bankcode, accountname, isbeneficiary, narration, enquirytoken, transpin, envroute, currency, accounttype, paymenttype, paywith, authtoken } = cleanMe(req.body);
 
-    // console.log('transferbod', req.body)
+    console.log('transferbod', req.body)
 
     if (!amount || (amount == '')) return res.status(400).json({ status: false, message: 'Kindly enter amount' });
     if (parseFloat(amount) <= 0) return res.status(400).json({ status: false, message: 'Invalid amount sent.' });
@@ -779,6 +779,16 @@ const transferPayment = async (req, res) => {
         const [isTokenValid, tokenMessage] = await checkTransAuth(userid, authtoken);
         if (!isTokenValid) {
             return res.status(400).json({ status: false, message: tokenMessage });
+        }
+
+        // check the stat of the account id
+        const RemittanceAccountState = await RemittanceAccounts.findOne({ where: { external_bank_guid: paywith, userid: userid } });
+        
+        if (!RemittanceAccountState)
+            return res.status(400).json({ status: false, message: 'Your linked bank account not found. Kindly reload the page and try again.' });
+
+        if (RemittanceAccountState && RemittanceAccountState.verification_state != 'completed') {
+            return res.status(400).json({ status: false, message: 'Your linked bank account not in active state. Kindly contact our support.'});
         }
     }
 
@@ -1046,40 +1056,65 @@ const transferPayment = async (req, res) => {
         } else {
 
             // PAYMENT TYPE IS WALLET
-            const userbal = await getBal(userid, currency);
-            topay = parseFloat(amount) + prdamnt
+            let fxrate = 1;
+            let toCreditNGN = amount;
+            
+            
+            // CHECK THE PAYMENT TYPE AND PAYWITH
+            if(paywith.toUpperCase() == 'USD' && paymenttype == 'wallet'){
+                currency = 'USD';
+                baseurrency = 'USD';
 
-            if (parseFloat(amount) >= Stampduty_Fee_Max && currency == 'NGN' && bankcode.toLowerCase() != 'hitchpay') {
+                // convert the usd to ngn
+                const fxResult = await getFX('USD', 'NGN');
+
+                if (!fxResult[0] || fxResult[1] <= 0)
+                    return res.status(400).json({ status: false, message: 'Unable to retrieve NGN exchange rate. Kindly retry' }) ;
+
+                fxrate = fxResult[1];
+                toCreditNGN = amount * fxrate;  //get the credit in NGN
+                prdamnt = prdamnt / fxrate;  //get the rate in USD
+                topay = parseFloat(amount) + parseFloat(prdamnt);
+                revenue = revenue / fxrate;
+            }else{
+                topay = parseFloat(amount) + parseFloat(prdamnt);
+            }
+
+
+            /* GET CURRENCY BALANCE */
+            const userbal = await getBal(userid, paywith);
+
+            if (parseFloat(amount) >= Stampduty_Fee_Max && paywith == 'NGN' && bankcode.toLowerCase() != 'hitchpay') {
                 topay_with_stampduty = parseFloat(amount) + prdamnt + parseFloat(StampdutyFee); //add stampduty
 
                 if (userbal < topay_with_stampduty)
-                    return res.status(400).json({ status: false, message: `Insufficient balance for ${currency}${formatAmount(topay_with_stampduty)} due to stamp duty charge of ${currency}${formatAmount(StampdutyFee)} on transfer of NGN10,000 or more - Nigerian Tax Act (NTA) 2025` });
+                    return res.status(400).json({ status: false, message: `Insufficient balance for ${paywith}${formatAmount(topay_with_stampduty)} due to stamp duty charge of ${paywith}${formatAmount(StampdutyFee)} on transfer of NGN10,000 or more - Nigerian Tax Act (NTA) 2025` });
 
             } else {
 
-                topay_with_stampduty = parseFloat(amount) + prdamnt
+                topay_with_stampduty = topay
 
                 if (userbal < topay_with_stampduty)
                     return res.status(400).json({
                         status: false,
-                        message: `Insufficient balance for ${currency}${formatAmount(topay_with_stampduty)}.`
+                        message: `Insufficient balance for ${paywith}${formatAmount(topay_with_stampduty)}.`
                     });
             }
 
 
-            let getreceiver;
+            let getreceiver; let receiver_name = '';
             if (bankcode.toLowerCase() === 'hitchpay') {
                 if (accounttype && accounttype == 'business') {
                     getreceiver = await Business.findOne({
                         where: { [Op.or]: [{ business_phoneno: { [Op.like]: `%${recipientno}%` } }] }
                     });
 
-                    var receiver_name = getreceiver.business_name
+                    receiver_name = getreceiver.business_name
                 } else {
                     getreceiver = await Customer.findOne({
                         where: { [Op.or]: [{ phoneno: { [Op.like]: `%${recipientno}%` } }, { uname: recipientno }] }
                     });
-                    var receiver_name = getreceiver.firstname + ' ' + getreceiver.lastname
+                    receiver_name = getreceiver.firstname + ' ' + getreceiver.lastname
                 }
 
                 if (!getreceiver) return res.status(400).json({ status: false, message: 'Invalid HitchPay recipient account.' });
@@ -1098,15 +1133,15 @@ const transferPayment = async (req, res) => {
                 // charge the sending customer and log the trnsactin
                 const newbalSender = await updateBalance(userid, topay, currency, 'debit', { transaction: debitSenderTransaction });
 
-            // Calculate correct previous balance based on the atomic update result
-            const correctPrevBal = parseFloat(newbalSender) + parseFloat(topay);
+                // Calculate correct previous balance based on the atomic update result
+                const correctPrevBal = parseFloat(newbalSender) + parseFloat(topay);
                 const meta_data_sender = JSON.stringify({ sourcename: accountname, sourceaccount: recipientno, sourcebank: bankname });
                 await Payn.create({
                 userid: userid, amount: topay, amountval: parseFloat(amount), newbal: newbalSender, prevbal: correctPrevBal,
                     txref: txref, pfor: 'transfer', usertype: 'user', paytype: 'debit', productid: '', ntwk: bankname,
                     paidthru: 'Wallet', pay_desc: pay_desc_transfer, timed: timed, status: 0, // Pending
                     recipient: recipientno, ntwkid: bankcode, meta: meta_data_sender, fee: prdamnt,
-                    narration: narration, revenue: revenue, payroute: env, currency: currency, providerfee: 0
+                    narration: narration, revenue: revenue, payroute: env, currency: currency, providerfee: 0, rate: fxrate
                 }, { transaction: debitSenderTransaction }
                 );
 
@@ -1194,14 +1229,14 @@ const transferPayment = async (req, res) => {
                     // CREDIT THE RECEIVER AND LOG
                     const receiverbal_before = await getBal(receiverid, currency, { transaction: internalTransferTransaction }, receivertype);
 
-                    newbalReceiver = await updateBalance(receiverid, parseFloat(amount), currency, 'credit', { transaction: internalTransferTransaction }, true, receivertype);
+                    newbalReceiver = await updateBalance(receiverid, parseFloat(toCreditNGN), currency, 'credit', { transaction: internalTransferTransaction }, true, receivertype);
 
                     dtxref_receiver = 'HTCH' + md5(randomstring.generate(3) + receiverid).toUpperCase().substring(0, 10);
                     const meta_data_receiver = JSON.stringify({ sourcename: sendername, sourceaccount: sourcephone, sourcebank: 'HitchPay' });
 
                     // Log for receiver
                     await Payn.create({
-                        userid: receiverid, recipient: sourcephone, amount: parseFloat(amount), amountval: parseFloat(amount), currency: currency, newbal: newbalReceiver, prevbal: receiverbal_before, txref: dtxref_receiver, pfor: 'wallet',
+                        userid: receiverid, recipient: sourcephone, amount: parseFloat(toCreditNGN), amountval: parseFloat(toCreditNGN), currency: currency, newbal: newbalReceiver, prevbal: receiverbal_before, txref: dtxref_receiver, pfor: 'wallet',
                         usertype: receiverpaytype, paytype: 'credit', productid: txref, paychannel: 'hitchpay',
                         paidthru: 'hitchpay', meta: meta_data_receiver, ntwkid: bankcode, ntwk: 'HitchPay', pay_desc: `Transfer from ${sendername}`, narration: narration, timed: timed, status: 1,
                         payroute: env, fee: 0, revenue: 0, providerfee: 0,
@@ -1222,9 +1257,9 @@ const transferPayment = async (req, res) => {
 
                     // Notifications
                     //notifier the receiver
-                    pushNotify(receiverid, 'Funding Alert - HitchPay', `You just received ${currency}${formatAmount(amount)} from ${sendername}.`);
+                    pushNotify(receiverid, 'Funding Alert - HitchPay', `You just received ${currency}${formatAmount(toCreditNGN)} from ${sendername}.`);
 
-                    mailSender(receiverName, 'Wallet Funding', receivermail, `You have received ${currency}${formatAmount(amount)} from ${sendername} via HitchPay. Ref: ${dtxref_receiver}.`);
+                    mailSender(receiverName, 'Wallet Funding', receivermail, `You have received ${currency}${formatAmount(toCreditNGN)} from ${sendername} via HitchPay. Ref: ${dtxref_receiver}.`);
 
                     //notifier the sender
                     pushNotify(userid, 'Transaction Notice - HitchPay', `Your ${currency}${formatAmount(amount)} transfer to ${receiverName} (${recipientno}) was successful.`);
@@ -1245,7 +1280,7 @@ const transferPayment = async (req, res) => {
                             You have just received funds in your wallet through ${recipientno}(HitchPay)
                         </p>
     
-                        <p style="line-height: 20px; letter-spacing: 0.025em;"><strong>Amount:</strong> ${currency}${formatAmount(amount)}</p>
+                        <p style="line-height: 20px; letter-spacing: 0.025em;"><strong>Amount:</strong> ${currency}${formatAmount(toCreditNGN)}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em;"><strong>Source Bank:</strong> HitchPay</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em;"><strong>Source Account:</strong> ${sourcephone}</p>
                         <p style="line-height: 20px; letter-spacing: 0.025em;"><strong>Sender Name:</strong> ${sendername}</p>
@@ -1298,12 +1333,12 @@ const transferPayment = async (req, res) => {
                             throw new Error('Service provider unavailable.');
 
                         const thenarration = `${fname} ${lname} - ${pay_desc_transfer}`;
-                        ftApiResponse = await SHTransfer(accesstoken, enquirytoken, bankcode, recipientno, amount, thenarration, txref, timed);
+                        ftApiResponse = await SHTransfer(accesstoken, enquirytoken, bankcode, recipientno, toCreditNGN, thenarration, txref, timed);
 
 
                     } else if (FTProvider.toLowerCase() == 'gtbank') {
                         var provider = 'gtbank';
-                        ftApiResponse = await GTBankTransfer(amount, txref, fname + ' ' + lname, recipientno, bankcode, accountname, timed);
+                        ftApiResponse = await GTBankTransfer(toCreditNGN, txref, fname + ' ' + lname, recipientno, bankcode, accountname, timed);
 
                     } else {
 
@@ -1314,7 +1349,7 @@ const transferPayment = async (req, res) => {
 
                         // hash the payload
                         const thenarration = `${fname} ${lname} - ${pay_desc_transfer}`;
-                        ftApiResponse = await PSB9Transfer(gettoken, amount, txref, thenarration, recipientno, bankcode, accountname, timed)
+                        ftApiResponse = await PSB9Transfer(gettoken, toCreditNGN, txref, thenarration, recipientno, bankcode, accountname, timed)
 
                     }
 
@@ -1339,7 +1374,7 @@ const transferPayment = async (req, res) => {
                             await logBeneficiary(userid, 'transfer', recipientno, bankname, bankcode, accountname);
                         }
 
-                        pushNotify(userid, 'Transaction Notice - HitchPay', `Your NGN${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successful.`);
+                        pushNotify(userid, 'Transaction Notice - HitchPay', `Your ${currency}${formatAmount(amount)} transfer to ${accountname} (${recipientno}) was successful.`);
 
                         /* CHECK FOR REFERREAL BONUS */
                         await logReferEarn(userid, txref);
@@ -2717,7 +2752,7 @@ const doPayUpd = async (req, res) => {
 
             await t.commit();
 
-            var auditdesc = `Updated N${formatAmount(getdetails.amount)} for ${getdetails.pfor} with the payment of ${reference} as completed`;
+            var auditdesc = `Updated ${getdetails.currency}${formatAmount(getdetails.amount)} for ${getdetails.pfor} with the payment of ${reference} as completed`;
             logAudit(adminid, auditdesc);
 
             return res.json({
@@ -2727,6 +2762,7 @@ const doPayUpd = async (req, res) => {
 
 
         } else if (type == 'recharge' || type == 'charge back') {
+            
             if (getdetails.status == 4) {
                 await t.rollback();
                 return res.json({ status: false, message: 'Transaction already re-charged' });

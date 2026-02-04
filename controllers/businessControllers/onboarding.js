@@ -46,14 +46,12 @@ const initBusinessAccount = async (req, res) => {
                <img style="margin: 20px 0;" src="https://res.cloudinary.com/hitchpay/image/upload/v1738019510/otpnote_fehcv4.png" alt="HitchPay">
                  <h1>Account Verification</h1>
                  <div class="" style="width: 110.59px; left: 243.24px; top: 412px; border-bottom: 3px solid #000000; margin: auto;"></div>
-                 <p>Your ${tcode.length}-digit code is:</p>
-                 <div style=" margin: 15px 0; font-style: normal; font-weight: 800; font-size: 32px; line-height: 40px; color: #000000;">${tcode}</div>
                  
                  <div class="greybg" style=" background: #F8F1FF; padding: 30px 20px;">
                      <p style=" font-style: normal; font-weight: 400; font-size: 20px; line-height: 36px; letter-spacing: 0.025em; color: #101010; text-align: left;">
                          Hello <span style="font-size: 18px;">😍</span><br>
                          To complete your account setup, please use the following code for verification:<br>
-                         <strong>OTP Token: ${tcode}</strong><br>
+                         <strong>OTP : ${tcode}</strong><br>
                          <strong>The code expires in 5 minutes</strong>
                      </p>
            

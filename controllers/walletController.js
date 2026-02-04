@@ -704,7 +704,12 @@ const resolveBank = async (req, res) => {
                     where: { [Op.or]: [{ phoneno: { [Op.like]: `%${acctno}%` } }, { uname: acctno }] }
                 });
 
-                var name = getuser.firstname + ' ' + getuser.lastname
+                if(!getuser){
+                    var name = '';
+                }else{
+                    var name = !getuser.firstname ? '' : getuser.firstname + ' ' + getuser.lastname;
+                }
+
             }
 
             if (!getuser)
@@ -846,6 +851,7 @@ const resolveBank = async (req, res) => {
         }
 
     } catch (error) {
+        logger.warn("Error bank val chk: ", error);
         console.log("Error bank val chk: ", error.message);
         res.status(400).json({ status: false, message: 'Unable to process request' });
     }

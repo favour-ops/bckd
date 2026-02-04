@@ -1,25 +1,26 @@
 const {Sequelize, DataTypes} = require('sequelize');
 
 module.exports = (sequelize, DataTypes) =>{
-    const Payn = sequelize.define("savelock", {            
+    const Savings = sequelize.define("savelock", {            
         id: {type:DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false},
         userid: {type:DataTypes.INTEGER,allowNull: true},
         amount: {type:DataTypes.DECIMAL,allowNull: true},
-        // target: {type:DataTypes.DECIMAL,allowNull: true},
-        lockcategory: {type:DataTypes.STRING(50),allowNull: true},  //target, voluntary, regular
-        locktype: {type:DataTypes.STRING(50),allowNull: true},  //monthly, quaterly, annual
-        title: {type:DataTypes.STRING(150), allowNull: true},        
-        reference: {type:DataTypes.STRING(150), allowNull: false},        
-        regcode: {type:DataTypes.STRING(20), allowNull: false},        
-        rmcode: {type:DataTypes.STRING(20), allowNull: false},         
-        // startdate: {type:DataTypes.TEXT,allowNull: true},
-        // enddate: {type:DataTypes.TEXT,allowNull: true},
-        status: {type:DataTypes.INTEGER,allowNull: false}, //0 pending approval, 2 - approved/running, 1 - declined, 3 - withdrawn
-        submittedby: {type:DataTypes.STRING,allowNull: true},
-        approvedby: {type:DataTypes.STRING,allowNull: true},
-        initiatedby: {type:DataTypes.STRING(20),allowNull: true},
+        interest: {type:DataTypes.DECIMAL(16,2),allowNull: true},  //in percentage
+        totalpayback: {type:DataTypes.DECIMAL(16,2),allowNull: true},  //in percentage
+        planid: {type:DataTypes.INTEGER,allowNull: true},
+        planname: {type:DataTypes.STRING(150),allowNull: true},
+        lockid: {type:DataTypes.STRING(150),allowNull: true},
+        days: {type:DataTypes.INTEGER,allowNull: true},
+        fundingsource: {type:DataTypes.STRING(150),allowNull: true},
+        type: {type:DataTypes.STRING(50),allowNull: true},  //e.g smartsaver
+        currency: {type:DataTypes.STRING(150),allowNull: true},
+        withdrawdate: {type:DataTypes.TEXT,allowNull: true},
+        depositdate: {type:DataTypes.TEXT,allowNull: true},
+        rate: {type:DataTypes.STRING(150),allowNull: true},     
+        title: {type:DataTypes.STRING(150), allowNull: true},
+        reference: {type:DataTypes.STRING(150), allowNull: false},
+        status: {type:DataTypes.INTEGER,allowNull: false}, //0 pending approval, 1 - approved/running, 3 - declined,  - withdrawn
         timed: {type:DataTypes.TEXT,allowNull: true},
-        plandatewithdraw: {type:DataTypes.TEXT,allowNull: true},
         timedupdated: {type:DataTypes.TEXT,allowNull: true}
 
       }, {
@@ -27,5 +28,5 @@ module.exports = (sequelize, DataTypes) =>{
         timestamps: false
       });
             
-    return Payn;
+    return Savings;
 }

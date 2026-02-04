@@ -11,12 +11,15 @@ module.exports = (sequelize, DataTypes) =>{
         interest: {type:DataTypes.INTEGER(11), allowNull: false},  //e.g 12 in %
         totalint: {type:DataTypes.DECIMAL(16,2), allowNull: false},     //4000
         totalpayback: {type:DataTypes.DECIMAL(16,2), allowNull: false}, //104000   
+        totalpaid: {type:DataTypes.DECIMAL(16,2), allowNull: true}, //104000   
         reference: {type:DataTypes.STRING(50), allowNull: true},                
+        currency: {type:DataTypes.STRING(20), allowNull: true},
         status: {type:DataTypes.STRING(11), allowNull: true},
         startdate: {type:DataTypes.INTEGER,allowNull: true},                
         paybackdate: {type:DataTypes.INTEGER,allowNull: true},    
         declinemsg: {type:DataTypes.TEXT,allowNull: true},    
         loanprofileid: {type:DataTypes.INTEGER,allowNull: true},
+        installment: {type:DataTypes.INTEGER,allowNull: true},  //total installemtn
         downpayment: {type:DataTypes.DECIMAL(16,2),allowNull: true, defaultValue: 0},
         metedata: {type:DataTypes.TEXT,allowNull: true}
         

@@ -40,6 +40,7 @@ const AcctRequest = db.accountrequest;
 const AddrVer = db.addressverification;
 const BizTeam = db.bizteam;
 const Business = db.business;
+const LoanApply = db.loanapply;
 
 
 const { check } = require('express-validator');
@@ -50,6 +51,7 @@ const { cloudinary, firebaseUpload, AWSFileUpload } = require("../config/imageup
 const { getUserInfo, getBal } = require("../config/userdetails");
 const path = require('path');
 const { logger } = require('../config/logger');
+const { group } = require('console');
 
 async function generateReferralCode() {
     let refercode;
@@ -116,14 +118,12 @@ const initAccount = async (req, res) => {
                <img style="margin: 20px 0;" src="https://res.cloudinary.com/hitchpay/image/upload/v1738019510/otpnote_fehcv4.png" alt="HitchPay">
                  <h1>Account Verification</h1>
                  <div class="" style="width: 110.59px; left: 243.24px; top: 412px; border-bottom: 3px solid #000000; margin: auto;"></div>
-                 <p>Your ${tcode.length}-digit code is:</p>
-                 <div style=" margin: 15px 0; font-style: normal; font-weight: 800; font-size: 32px; line-height: 40px; color: #000000;">${tcode}</div>
                  
                  <div class="greybg" style=" background: #F8F1FF; padding: 30px 20px;">
                      <p style=" font-style: normal; font-weight: 400; font-size: 20px; line-height: 36px; letter-spacing: 0.025em; color: #101010; text-align: left;">
                          Hello <span style="font-size: 18px;">😍</span><br>
                          To complete your account setup, please use the following code for verification:<br>
-                         <strong>OTP Token: ${tcode}</strong><br>
+                         <strong>OTP : ${tcode}</strong><br>
                          <strong>The code expires in 5 minutes</strong>
                      </p>
            
@@ -870,6 +870,31 @@ const userInfo = async (req, res) => {
         var free_transfer = accountLimit[4];
         const freetransfer = parseInt(free_transfer) - parseInt(freetransfer_used); //remaining free transfer
 
+        // get customer all unpaid loan with status 1 group by loantype to show each total amount, paid
+        const unPaidLoans = await LoanApply.findAll({
+            attributes: [
+                'currency', 'loantype',
+                [Sequelize.fn('SUM', Sequelize.col('totalpayback')), 'totalAmount'],
+                [Sequelize.fn('SUM', Sequelize.col('totalpaid')), 'totalPaid']
+            ],
+            where: {
+                userid: tokenid,
+                status: 1
+            }
+        });
+
+        // console.log('unPaidLoans', unPaidLoans)
+
+        // format it
+        const formattedLoans = unPaidLoans.map(loan => ({
+            totalAmount: loan.getDataValue('totalAmount') || 0,
+            totalPaid: loan.getDataValue('totalPaid') || 0,
+            totalPaid: loan.getDataValue('totalPaid') || 0,
+            currency: loan.getDataValue('currency'),
+            balance: (loan.getDataValue('totalAmount') || 0) - (loan.getDataValue('totalPaid') || 0)
+        }))[0];
+
+
         res.json({
             status: true,
             message: 'User Details retrieved',
@@ -919,7 +944,13 @@ const userInfo = async (req, res) => {
                     { title: 'SafeHaven Microfinance Bank', value: "safehaven" },
                     { title: 'GT Bank', value: "gtbank" },
                     // {title: '9 Payment Service Bank', value: "9psb"},
-                ]
+                ],
+                loan: {
+                    total_loan: Number(formattedLoans?.totalAmount).toFixed(2) || 0,
+                    paid: Number(formattedLoans?.totalPaid).toFixed(2) || 0,
+                    loan_balance: Number(formattedLoans?.balance).toFixed(2) || 0,
+                    currency: formattedLoans?.currency || 'NGN'
+                }
             },
 
         });
@@ -1547,14 +1578,12 @@ const resetPass = async (req, res) => {
             <div>
               <img style="margin: 20px 0;" src="https://res.cloudinary.com/hitchpay/image/upload/v1738011127/resetpass_uiq9wk.png" alt="hitchpay">
                 <div class="" style="width: 110.59px; left: 243.24px; top: 412px; border-bottom: 3px solid #000000; margin: auto;"></div>
-                <p style="text-align: center">Your ${tcode.length}-digit code is:</p>
-                <div style="text-align: center, margin: 15px 0; font-style: normal; font-weight: 800; font-size: 32px; line-height: 40px; color: #000000;">${tcode}</div>
                 
                 <div class="greybg" style=" background: #F8F1FF; padding: 30px 20px;">
                     <p style=" font-style: normal; font-weight: 400; font-size: 20px; line-height: 36px; letter-spacing: 0.025em; color: #101010; text-align: left;">
                         Hello ${fname} <span style="font-size: 18px;">😍</span><br>
                         To reset your password, please use the following code for verification:<br>
-                        <strong>OTP Token: ${tcode}</strong><br>
+                        <strong>OTP : ${tcode}</strong><br>
                         <strong>The code expires in 5 minutes</strong>
                     </p>
           

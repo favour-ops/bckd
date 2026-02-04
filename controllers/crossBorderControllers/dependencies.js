@@ -12,7 +12,7 @@ moment.tz.setDefault('Africa/Lagos');
 
 const { mailSender } = require('../../config/mailsender');
 const { notifyMe, sendSMS, pushNotify } = require("../../config/notifyuser");
-const { formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, updateBalance, formatPhoneNumber, getYCFX, mapleradFx, publicCDN_Fx, checkTransAuth} = require("../../config/myfunct");
+const { formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, updateBalance, formatPhoneNumber, getYCFX, mapleradFx, publicCDN_Fx, checkTransAuth, getFX} = require("../../config/myfunct");
 const { logger } = require('../../config/logger');
 const { getBal, logBeneficiary, getUserInfo} = require("../../config/userdetails");
 const { cloudinary, firebaseUpload, AWSFileUpload } = require("../../config/imageuploads");
@@ -44,5 +44,5 @@ module.exports = {
     formatAmount, cleanMe, ucFirst, giveWelcomeBonus, referralUplineDownlineBonus, validateCacNumber, logger,
     cloudinary, firebaseUpload, AWSFileUpload, formatPhoneNumber, getUserInfo,
     Customer, Business, Wallets, BizTeam, BizInvites, BizKeys, KYC, KycDoc, payWhk, Payn, AppSett, LogRequest, getBal, updateBalance,
-    RemittanceAccounts, RemittancePay,ExternaUser, LogResponse, LogRequest, publicCDN_Fx, mapleradFx, getYCFX, otpVer, checkTransAuth
+    RemittanceAccounts, RemittancePay,ExternaUser, LogResponse, LogRequest, publicCDN_Fx, mapleradFx, getYCFX, otpVer, checkTransAuth, getFX
 };

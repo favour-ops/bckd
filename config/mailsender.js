@@ -111,9 +111,9 @@ const mailSender = async (username, subject, to, content, attachments = null) =>
                     <img src="https://res.cloudinary.com/hitchpay/image/upload/v1738011127/facebook_ecllmu.png"
                     alt="hitchpay Facebook">
                 </a>
-                <a href="https://x.com/hitchpay">
+                <a href="https://x.com/hitchpay_">
                     <img src="https://res.cloudinary.com/hitchpay/image/upload/v1738011127/twitte_u01ub9.png"
-                    alt="hitchpay Twitter">
+                    alt="hitchpay X">
                 </a>
                 <a href="https://www.instagram.com/hitchpay">
                     <img src="https://res.cloudinary.com/hitchpay/image/upload/v1738011128/instagram_in0pzj.png"

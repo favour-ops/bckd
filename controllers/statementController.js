@@ -40,8 +40,8 @@ const generateStatementHTML = (data) => {
             <style>
                 body { font-family: 'Mulish', sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; }
                 .statement-card { background-color: white; max-width: 800px; margin: auto; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-                .statement-header { background-color: #6A2AB5; background-image: url('https://res.cloudinary.com/hitchpay/image/upload/v1762301934/statementheader_pbbkym.png'); background-size: cover; position: relative; min-height: 180px; color: #ffffff; padding: 20px 24px; }
-                .statement-header img { height: 40px; }
+                .statement-header { background-color: #6A2AB5; background-image: url('https://res.cloudinary.com/hitchpay/image/upload/v1769981668/statementheader_rcowar.png'); background-size: cover; position: relative; min-height: 180px; color: #ffffff; padding: 20px 24px; }
+                .statement-header img { height: 80px; }
                 .inner-card-container { padding: 0 24px; }
                 .inner-card { position: relative; background: #fff; top: -85px; border: 1px solid #eee; border-radius: 8px; }
                 .top-header { display: flex; justify-content: space-between; align-items: center; height: 64px; background: #F4EAFF; padding: 0 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
@@ -60,11 +60,11 @@ const generateStatementHTML = (data) => {
                 .transaction-table-container { padding: 5px 24px; }
                 .transaction-table { border: 1.088px solid #C4C0C0; border-radius: 2px; overflow: hidden; }
                 .transaction-table table { width: 100%; border-collapse: collapse; }
-                .transaction-table th, .transaction-table td { padding: 12px; font-size: 11px; text-align: left; }
+                .transaction-table th, .transaction-table td { padding: 12px; font-size: 10px; text-align: left; }
                 .transaction-table thead { background: #370D66; color: white; }
                 .transaction-table th { font-weight: bold; }
                 .transaction-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
-                .transaction-table .currency { text-align: right; }
+                .transaction-table .currency { text-align: left; }
                 .debit-amount { color: #FF0000; font-weight: 600; }
                 .credit-amount { color: #008000; font-weight: 600; }
                 .balance-amount { color: #1e1e1e; font-weight: 600; }
@@ -78,7 +78,7 @@ const generateStatementHTML = (data) => {
         <body>
             <div class="statement-card">
                 <div class="statement-header">
-                    <img src="https://res.cloudinary.com/hitchpay/image/upload/v1738011127/hitchlogo_white_lsfgnx.png" alt="HitchPay Logo">
+                    <img src="https://res.cloudinary.com/hitchpay/image/upload/v1769982711/white_logo_mwrrnw.png" alt="HitchPay Logo">
                 </div>
 
                 <div class="inner-card-container">
@@ -189,7 +189,7 @@ const generateStatementHTML = (data) => {
                     <div>
                         <h3>DISCLAIMER</h3>
                         <p>This is a computer generated statement requiring no signature and it represents our records of the customer transactions with us.<br>
-                        Any exceptions must be advised to us immediately. Please address all enquiries to our support on our social media or send an email to hi@hitchpay.ng</p>
+                        Any exceptions must be advised to us immediately. Please address all enquiries to our support on our social media or send an email to support@hitchpay.ng</p>
                     </div>
                     <div style="margin-top: 24px;">
                         <img class="footer-logo" src="${logoUrl}" alt="HitchPay Logo">
@@ -241,15 +241,18 @@ const processUserStatement = async (user, browser) => {
 
         const statementRecords = transactions.map(tx => ({
             date: moment.unix(tx.timed).format('YYYY-MM-DD HH:mm'),
-            description: (tx.narration || tx.pay_desc),
+            description: `${ucFirst(tx.narration || tx.pay_desc)} - ${tx.recipient}`,
             reference: tx.txref,
             debit: tx.paytype === 'debit' ? tx.amount : 0,
             credit: tx.paytype === 'credit' ? tx.amount : 0,
             balance: formatAmount(tx.newbal, 2)
         }));
 
-        const totalInflow = statementRecords.reduce((sum, r) => sum + r.credit, 0);
-        const totalOutflow = statementRecords.reduce((sum, r) => sum + r.debit, 0);
+        // const totalInflow = statementRecords.reduce((sum, r) => sum + r.credit, 0);
+        // const totalOutflow = statementRecords.reduce((sum, r) => sum + r.debit, 0);
+
+        const totalInflow = transactions.reduce((sum, tx) => sum + (tx.paytype === 'credit' ? Number(tx.amount) : 0), 0);
+        const totalOutflow = transactions.reduce((sum, tx) => sum + (tx.paytype === 'debit' ? Number(tx.amount) : 0), 0);
 
         const statementData = {
             customerName: `${user.firstname} ${user.lastname}`,
@@ -292,6 +295,9 @@ const processUserStatement = async (user, browser) => {
         await mailSender(user.firstname, `Your HitchPay Statement for ${period}`, user.email, mailContent, attachments);
         // await mailSender(user.firstname, `Your HitchPay Statement for ${period}`, 'ojidex17@gmail.com', mailContent, attachments);
 
+        // Update cronupd to 1 for the users
+        await Customer.update({ cronupd: 1 }, { where: { id: user.id } });
+
         await notifyMe(user.id, 'Monthly Statement', 'user', `Your account statement for ${period} has been sent to your email.`);
         logger.info(`Successfully generated and sent statement to user ${user.id}.`);
         return { status: 'success' };
@@ -306,7 +312,7 @@ const processUserStatement = async (user, browser) => {
  * Main function to generate and send monthly statements.
  */
 
-const generateMonthlyStatements = async () => {
+const generateMonthlyStatements = async (req, res) => {
     const { secret } = req.params;
     if (secret !== process.env.CRON_SECRET) {
         return res.status(403).json({ status: false, message: 'Unauthorized' });
@@ -342,8 +348,10 @@ const generateMonthlyStatements = async () => {
                 id: { [Op.in]: userIds },
                 status: 1, // Active users
                 email: { [Op.ne]: null }, // Must have an email
-                bvverify: 2, // Must be verified
-            }
+                cronupd: { [Op.or]: [0, null] }, // Must not have been updated this month
+                bvverify: 2, // Must be verified 
+            },
+            limit: 200
         });
 
         if (!users.length) {
@@ -352,6 +360,7 @@ const generateMonthlyStatements = async () => {
         }
 
         logger.info(`Found ${users.length} users to process for statements.`);
+
 
         // Set concurrency to a reasonable number based on server resources
         const queue = new PQueue({ concurrency: 4 });
@@ -382,6 +391,10 @@ const generateMonthlyStatements = async () => {
         await queue.onIdle();
 
         logger.info(`Monthly statement job finished. Success: ${successCount}, Failed: ${failureCount}, Skipped: ${skippedCount}.`);
+        res.status(200).json({
+            status: true,
+            message: `Monthly statement job finished. Success: ${successCount}, Failed: ${failureCount}, Skipped: ${skippedCount}.`
+        });
 
     } catch (error) {
         logger.error(`[CRITICAL] The 'generateMonthlyStatements' job failed: ${error.message}`, error);

@@ -93,6 +93,10 @@ db.remittancepay = require('./remittance.js')(sequelize, DataTypes);
 db.loanapply = require('./loanModel.js')(sequelize, DataTypes);
 db.savelock = require('./savelockModel.js')(sequelize, DataTypes);
 db.savingsads = require('./savingsAdsModel.js')(sequelize, DataTypes);
+db.lockplans = require('./savingsPlansModel.js')(sequelize, DataTypes);
+db.savehistory = require('./savingsHistoryModel.js')(sequelize, DataTypes);
+db.loanplans = require('./loanPlansModel.js')(sequelize, DataTypes);
+db.loanrepay = require('./loanRepaymentModel.js')(sequelize, DataTypes);
 
 // db.loanpayment = require('./loanpaymentModel.js')(sequelize, DataTypes);
 // db.loanrepayment = require('./loanrepaymentModel.js')(sequelize, DataTypes);

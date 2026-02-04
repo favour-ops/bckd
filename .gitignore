@@ -9,4 +9,5 @@ config/serviceAccountKey.json
 /routes/userRoutersDebugger.js
 logs
 /newrelic_agent.log
-newrelic_agent.log
+newrelic_agent.log.env2
+.env2
