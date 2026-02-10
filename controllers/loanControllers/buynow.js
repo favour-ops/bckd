@@ -332,7 +332,11 @@ const submitLoanApplication = async (req, res) => {
     if (paywith != tuitionCurrency) {
 
         const rateData = await getFX(tuitionCurrency, paywith);
-        // console.log('rateData', rateData)
+        console.log('rateData', rateData)
+        console.log('expected_downpayment', expected_downpayment)
+        console.log('tuitionCurrency', tuitionCurrency)
+        console.log('paywith', paywith)
+
         if ((!rateData[0]) && (!rateData[1]))
             return res.status(400).json({ status: false, message: 'Unable to get conversion rate' });
 
@@ -440,21 +444,21 @@ const submitLoanApplication = async (req, res) => {
 
                 <li>Loan Type: ${loanType.toUpperCase()}</li>
                 <li>Reference: ${txref}</li>
-                <li>Amount: N${formatAmount(tuitionAmount)}</li>
-                <li>Loan Amount: N${formatAmount(calculated_loan_amount)}</li>
-                <li>Down payment: N${formatAmount(expected_downpayment)}</li>
-                <li>Total Interest: N${formatAmount(calculated_total_interest)}</li>
+                <li>Amount: ${tuitionCurrency}${formatAmount(tuitionAmount)}</li>
+                <li>Loan Amount: ${tuitionCurrency}${formatAmount(calculated_loan_amount)}</li>
+                <li>Down payment: ${tuitionCurrency}${formatAmount(expected_downpayment)}</li>
+                <li>Total Interest: ${tuitionCurrency}${formatAmount(calculated_total_interest)}</li>
                 <li>Repayment Plans: ${installment}</li>
-                <li>Total Repayment: N${formatAmount(totalRepayment)}</li>
+                <li>Total Repayment: ${tuitionCurrency}${formatAmount(totalRepayment)}</li>
                 <li>Repayment Rate: ${getPlan.rate}%</li>
-                <li>Portal Fee: N${formatAmount(portalFee)}</li>                
+                <li>Portal Fee: ${tuitionCurrency}${formatAmount(portalFee)}</li>                
             </ul>
             <p>Thank you for choosing Hitchpay. We look forward to serving you with a seamless and secure payment experience.</p>
         `;
 
         mailSender(getuser.firstname, 'Loan Application Submitted', getuser.email, emailContent);
 
-        pushNotify(userid, 'Loan Application Submitted', `Your loan application for N${formatAmount(calculated_loan_amount)} has been submitted successfully. We will process your payment shortly.`);
+        pushNotify(userid, 'Loan Application Submitted', `Your loan application for ${tuitionCurrency}${formatAmount(calculated_loan_amount)} has been submitted successfully. We will process your payment shortly.`);
 
            // break down the repayment count and the dates for each repayments
         const repay_count = installment;        
@@ -552,16 +556,36 @@ const fetchLoanDetails = async (req, res) => {
     try {
         let loan;
         if(reference == 'bnpl'){
-            loan = await LoanApply.findOne({ where: { userid: userid, loantype: reference, status: '1'}, order: [['id', 'DESC']] });
+            loan = await LoanApply.findOne({ where: { userid: userid, loantype: reference}, order: [['id', 'DESC']] });
         }else{
             loan = await LoanApply.findOne({ where: { userid: userid, reference: reference } });
         }
 
+        
         if (!loan) {
-            return res.status(200).json({ status: true, message: 'Loan application not found', data: {
-                active_loan: false,
-            } });
+            return res.status(200).json({
+                status: true,
+                message: 'No loan history found',
+                data: { active_loan: false }
+            });
         }
+
+        // If loan exists but is fully paid (status '2') or declined ('3')
+        /* if (loan.status == '2' || loan.status == '3') {
+            return res.status(200).json({
+                status: true,
+                message: 'No active loan found',
+                data: {
+                    active_loan: false,
+                    previous_loan: {
+                        reference: loan.reference,
+                        status: loan.status == '2' ? 'Paid' : 'Declined',
+                        amount: loan.amount,
+                        currency: loan.currency
+                    }
+                }
+            });
+        } */
 
         // get loan repayment history
         const loanRepayments = await LoanRepay.findAll({
@@ -593,7 +617,7 @@ const fetchLoanDetails = async (req, res) => {
                 installment_no: i,
                 amount: Number(monthly_amount.toFixed(2)),
                 due_date: moment.unix(loan.startdate).add(i, 'months').format('DD-MM-YYYY'),
-                status: 'pending'
+                status: loanRepayments.reduce((acc, r) => acc + parseInt(r.installment), 0) >= i ? 'paid' : 'pending'
             });
         }
         
@@ -613,7 +637,7 @@ const fetchLoanDetails = async (req, res) => {
             status: loan.status,
             startdate: moment.unix(loan.startdate).format('DD-MM-YYYY'),
             paybackdate: moment.unix(loan.paybackdate).format('DD-MM-YYYY'),
-            active_loan: true,
+            active_loan: loan.status == '1' ? true : false,
             repayment_schedule: repayment_schedule,
             repayhisory: formattedLoanRepayments
 
@@ -724,7 +748,15 @@ const repayLoan = async(req, res) => {
             const totalPaid = parseFloat(loanInfo.totalpaid) + parseFloat(expectedInstallment);
             // const repayCount = parseInt(loanInfo.installment);
 
-            await LoanApply.update({ totalpaid: totalPaid }, { where: { userid: userid, reference: reference }, transaction: repayTransaction });
+            console.log('totalPaid', totalPaid)
+            console.log('repayAmount', repayAmount)
+
+            if(totalPaid >= repayAmount){
+                await LoanApply.update({ totalpaid: totalPaid, status: 2}, { where: { userid: userid, reference: reference }, transaction: repayTransaction });
+            }else{
+                await LoanApply.update({ totalpaid: totalPaid }, { where: { userid: userid, reference: reference }, transaction: repayTransaction });
+            }
+
 
             // log loan repayment history LoanRepay
             await LoanRepay.create({

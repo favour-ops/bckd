@@ -403,6 +403,127 @@ const AdmincreateVKadAccount = async (req, res) => {
 }
 
 
+const createKiraCust = async (data) => {
+    try {
+    
+
+        const data = JSON.stringify({
+            first_name: verfname,
+            last_name: verlname,
+            email: useremail,
+            country: getUser.countrycode,
+            dob: dateOfBirth,
+            phone: { phone_country_code: dialcode, phone_number: userphoneno },
+            address: {
+                street: useradr,
+                city: usercity,
+                state: userstate,
+                country: getUser.countrycode,
+                postal_code: postalcode
+            },
+            identification_number: identityNumber,
+            identity: {
+                type: kycdocname,
+                image: getkycdoc.docurl,
+                number: kycidno,
+                country: !getkycdoc.issuancecountry || getkycdoc.issuancecountry === '' ? getUser.countrycode : getkycdoc.issuancecountry
+            },
+            
+            photo: getkycdoc.docurl,
+        })
+
+        const payload = {
+            "type": "individual",
+            "email": data.useremail,
+            "address_street": data.useradr,
+            "address_city": data.usercity,
+            "address_state": data.userstate,
+            "address_country": data.countrycode,
+            "phone": `${data.dialcode}${data.userphoneno}`,
+            "status": "active",
+            "address_zip_code": data.postalcode,
+            "pep_status": false,
+            "source_of_funds": "business_income",
+            "account_purpose": "payments_to_friends_or_family_abroad",
+            "expected_monthly_payments": "0_4999",
+            "first_name": "Olajide",
+            "last_name": "Olatunji",
+            "birth_date": "1990-09-02",
+            "nationality": "NGA",
+            "employment_status": "employed",
+            "occupation": "Software Engineer",
+            "identifying_information": [
+                {
+                "type": "drivers_license",
+                "documents": [
+                    {
+                    "type": "front",
+                    "file": "BASE64 OR URL"
+                    },
+                    {
+                    "type": "back",
+                    "file": "BASE64 OR URL"
+                    }
+                ],
+                "issuing_country": "NIG",
+                "number": "2322322",
+                "expiration": "2034-09-03"
+                }
+            ],
+            }
+
+        // console.log('datadebug: ', data);
+
+        await LogRequest.create({ reference: userid, jsonreq: data, timed: '', product: 'kaduser', provider: 'mpld' });
+
+        let config = {
+            method: 'post',
+            url: `${process.env.MPLDURL}/customers/enroll`,
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+                'Authorization': `Bearer ${process.env.MPLSKEY}`
+            },
+            data: data
+        };
+
+        let response = await axios.request(config);
+        let thedata = response.data;
+        if (thedata.status && thedata['data']['status'] == 'COMPLETED') {
+            const respdata = thedata['data'];
+            const trackiID = respdata['id'];
+            const tier = respdata['tier'];
+
+            /* update the record */
+            let timed = Date.parse(new Date()) / 1000;
+            await CardUser.create({ userid: userid, trackingid: trackiID, provider: 'MPLD', tier: tier, timed: timed, status: 1 });
+
+            return res.json({
+                status: true,
+                message: 'US Profile Successfully Created',
+                data: {
+                    trackingid: trackiID
+                }
+            });
+
+        } else {
+            return res.status(400).json({ status: false, message: 'Unable to process your request at the moment', data: { errortype: "" } });
+        }
+
+    } catch (error) {
+        console.log('error kad acct', error.message)
+
+        if (error.response && error.response.data) {
+            console.error('Server response data:', JSON.stringify(error.response.data, null, 2));
+            return res.status(400).json({ status: false, message: 'Unable to process request', data: { errortype: "" } });
+        } else {
+            return res.status(400).json({ status: false, message: 'Unable to process your request at the moment, kindly retry shortly', data: { errortype: "" } });
+        }
+    }
+}
+
+
+
 const cardAccountStatus = async (req, res) => {
     const tknid = req.user.id;
     if (!tknid) return res.json({ status: false, message: 'Eh! Invalid request sent!' });

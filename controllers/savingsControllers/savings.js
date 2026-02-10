@@ -1,4 +1,6 @@
-const { db, uuidv4, moment, bcrypt, mailSender, notifyMe, pushNotify, cleanMe, ucFirst, logger, Customer,formatPhoneNumber, LogResponse, sharp, getBal, updateBalance, Payn, md5, randomstring, LockPlans, Savings, formatAmount, SaveHistory} = require('./_dependencies');
+const { db, uuidv4, moment, bcrypt, mailSender, notifyMe, pushNotify, logger, Customer, LogResponse, sharp, getBal, Payn, md5, randomstring, LockPlans, Savings, SaveHistory} = require('./_dependencies');
+
+const { formatAmount, cleanMe, ucFirst, updateBalance, formatPhoneNumber, getFX } = require("../../config/myfunct");
 
 
 
@@ -137,7 +139,7 @@ const createSavings = async (req, res) => {
 
             // log the payment
             await Payn.create({
-                userid: userid, amount: amountDeductable, amountval: amountDeductable, newbal: newbalFromUpdate, prevbal: prevbal, txref: txref, pfor: 'savingsdeposit', usertype: 'user', paytype: 'debit', productid: savingid, ntwk: savingstype, paidthru: 'Wallet', pay_desc: 'Savings Deposit', timed: dtimed, status: 0, recipient: '', fee: 0, payroute: 'app', currency: fundingsource, revenue: 0, providerfee: 0, rate: fxrate
+                userid: userid, amount: amountDeductable, amountval: amountDeductable, newbal: newbalFromUpdate, prevbal: prevbal, txref: txref, pfor: 'savingsdeposit', usertype: 'user', paytype: 'debit', productid: savingid, ntwk: savingstype, paidthru: 'Wallet', pay_desc: 'Savings Deposit', timed: dtimed, status: 1, recipient: '', fee: 0, payroute: 'app', currency: fundingsource, revenue: 0, providerfee: 0, rate: fxrate
             }, { transaction: debitTransaction });
 
             // log the savings
@@ -216,12 +218,12 @@ const getSavings = async (req, res) => {
         id: saving.id,
         title: saving.title,
         amount: saving.amount,
-        totalpayback: saving.totalpayback,
         currency: saving.currency,
         planid: saving.planid,
         planname: saving.planname,
         lockid: saving.lockid,
         interest: saving.interest,
+        totalpayback: saving.amount * (1 + (saving.interest / 100)),
         type: saving.type,
         withdrawdate: saving.withdrawdate, // convert the date from unix 
         withdrawdate_formatted: moment.unix(saving.withdrawdate).format('DD-MM-YYYY'),
@@ -266,11 +268,11 @@ const getSavingsDetails = async (req, res) => {
                 History = [];
             } else {
                 History = saveHistory.map(history => ({
-                    amount: formatAmount(history.amount),
+                    amount: history.amount,
                     currency: history.currency,
                     txref: history.txref,
-                    prevbal: formatAmount(history.prevbal),
-                    newbal: formatAmount(history.newbal),
+                    prevbal: history.prevbal,
+                    newbal: history.newbal,
                     type: history.type,
                     status: history.status == '1' ? 'Success' : 'Failed',
                     timed: moment.unix(history.timed).format('DD-MM-YYYY'),
@@ -282,8 +284,8 @@ const getSavingsDetails = async (req, res) => {
             const formattedSaving = {
                 id: saving.id,
                 title: saving.title,
-                amount: formatAmount(saving.amount),
-                totalpayback: formatAmount(totalPayback),
+                amount: saving.amount,
+                totalpayback: totalPayback,
                 currency: saving.currency,
                 planid: saving.planid,
                 planname: saving.planname,
@@ -365,7 +367,7 @@ const topUpSavings = async (req, res) => {
 
         // log the payment
         await Payn.create({
-            userid: userid, amount: amountDeductable, amountval: amountDeductable, newbal: newbalFromUpdate, prevbal: prevbal, txref: txref, pfor: 'savingstopup', usertype: 'user', paytype: 'debit', productid: savingsid, ntwk: '', paidthru: 'Wallet', pay_desc: 'Savings Deposit', timed: dtimed, status: 0, recipient: '', fee: 0, payroute: 'app', currency: fundingsource, revenue: 0, providerfee: 0, rate: fxrate
+            userid: userid, amount: amountDeductable, amountval: amountDeductable, newbal: newbalFromUpdate, prevbal: prevbal, txref: txref, pfor: 'savingstopup', usertype: 'user', paytype: 'debit', productid: savingsid, ntwk: '', paidthru: 'Wallet', pay_desc: 'Savings Deposit', timed: dtimed, status: 1, recipient: '', fee: 0, payroute: 'app', currency: fundingsource, revenue: 0, providerfee: 0, rate: fxrate
         }, { transaction: debitTransaction });
 
         // log savings history
@@ -396,12 +398,12 @@ const topUpSavings = async (req, res) => {
 
         await debitTransaction.rollback();
 
-        logger.error(`Error creating savings: ${err.message}`);
+        logger.error(`Error topup savings: ${err.message}`);
         return res.status(400).json({ status: false, message: 'Unable to process deposit.' });
      }
 
     }catch(error){
-        logger.error(`Error creating savings: ${error.message}`);
+        logger.error(`Error topup savings: ${error.message}`);
         return res.status(400).json({ status: false, message: 'Unable to complete request.' });
     }
 }

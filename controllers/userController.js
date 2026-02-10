@@ -41,7 +41,7 @@ const AddrVer = db.addressverification;
 const BizTeam = db.bizteam;
 const Business = db.business;
 const LoanApply = db.loanapply;
-
+const Savings = db.savelock;
 
 const { check } = require('express-validator');
 const { genCode } = require("../config/getcode");
@@ -882,7 +882,7 @@ const userInfo = async (req, res) => {
                 status: 1
             }
         });
-
+        
         // console.log('unPaidLoans', unPaidLoans)
 
         // format it
@@ -893,6 +893,25 @@ const userInfo = async (req, res) => {
             currency: loan.getDataValue('currency'),
             balance: (loan.getDataValue('totalAmount') || 0) - (loan.getDataValue('totalPaid') || 0)
         }))[0];
+
+        //get all savings group by currency
+        const savingsData = await Savings.findAll({
+            attributes: [
+                'currency',
+                [Sequelize.fn('SUM', Sequelize.col('amount')), 'totalSavings']
+            ],
+            where: {
+                userid: tokenid,
+                status: 1
+            },
+            group: ['currency']
+        });
+
+        const formattedSavings = savingsData.map(save => ({
+            currency: save.getDataValue('currency'),
+            total: Number(save.getDataValue('totalSavings')).toFixed(2) || 0
+        }));
+        
 
 
         res.json({
@@ -950,7 +969,10 @@ const userInfo = async (req, res) => {
                     paid: Number(formattedLoans?.totalPaid).toFixed(2) || 0,
                     loan_balance: Number(formattedLoans?.balance).toFixed(2) || 0,
                     currency: formattedLoans?.currency || 'NGN'
-                }
+                }, 
+                savings_rate_min: 5,
+                savings_rate_max: 14,
+                savings: formattedSavings
             },
 
         });
