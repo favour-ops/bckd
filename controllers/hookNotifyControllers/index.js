@@ -7,17 +7,13 @@ const shnotify = require('./shnotify');
 const cybdnotify = require('./cybdnotify');
 const sqdnotify = require('./sqdnotify');
 const stripehook = require('./stripehook');
+const kirawhknotify = require('./kirawhook')
 
 
 
 module.exports = {
-    ...dojhnotify,
-    ...htchpynotify,
-    ...mplrdnotify,
-    ...prvdsnotify,
-    ...psb9notify,
-    ...shnotify,
-    ...cybdnotify,
-    ...sqdnotify,
-    ...stripehook
+    ...dojhnotify, ...htchpynotify, ...mplrdnotify,
+    ...prvdsnotify, ...psb9notify, ...shnotify,
+    ...cybdnotify, ...sqdnotify, ...stripehook,
+    ...kirawhknotify
 };

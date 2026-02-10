@@ -222,7 +222,7 @@ router.post("/verifypayintent", standardMiddleChecks, remittanceControllers.veri
 
 
 
-/* LOAN ANS SAVINGS */
+/* LOAN */
 router.get("/eligibleschool", standardMiddleChecks, loanControllers.fetchSchools);
 router.get("/faculties/:schoolid", standardMiddleChecks, loanControllers.fetchFaculties);
 router.post("/tuitionoffer", standardMiddleChecks, loanControllers.fetchTuitionsLoan);

@@ -11,7 +11,7 @@ const yccoverage = require('./yccoverage.json');
 
 const { mailSender } = require('../../config/mailsender');
 const { notifyMe, sendSMS, pushNotify } = require("../../config/notifyuser");
-const { formatAmount, cleanMe, ucFirst, updateBalance, formatPhoneNumber, checkTransAuth, getFX} = require("../../config/myfunct");
+const { formatAmount, cleanMe, ucFirst, updateBalance, formatPhoneNumber, checkTransAuth, getFX, getYCFX} = require("../../config/myfunct");
 const { logger } = require('../../config/logger');
 const { getBal, logBeneficiary, getUserInfo} = require("../../config/userdetails");
 const { cloudinary, firebaseUpload, AWSFileUpload } = require("../../config/imageuploads");
@@ -205,47 +205,77 @@ const fetchExchangeRate = async (sourceCurrency, destinationCurrency) => {
         let rateData; let crossRate = 0; let sourcePerUsd = 0; let destPerUsd = 0; let last_updated = '';
         const now = Date.now();
 
-        if (sourceCurrency == 'USD') {
-            // use the cdn rate
+        // if (sourceCurrency == 'USD') {
+        //     // use the cdn rate
             
             rateData = await getFX(sourceCurrency, destinationCurrency); 
+            // rateData = await getYCFX(sourceCurrency, destinationCurrency); 
             if (rateData[0]) {
                 crossRate = rateData[1];
                 sourcePerUsd = 0;
                 destPerUsd = 0;
             }
 
-        } else {
-            // Check if the cache is still valid
-            if (rateCache.data && (now - rateCache.timestamp < RATE_CACHE_DURATION)) {
-                logger.info('Serving exchange rates from cache.');
-                rateData = rateCache.data;
-            } else {
-
-                logger.info('Fetching fresh exchange rates from API.');
-                const freshRateData = await ycRequest("GET", `/business/rates`);
-                if (freshRateData && freshRateData.rates) {
-                    rateData = freshRateData;
-                    // console.log('rateData2', rateData)
-                    rateCache = { data: rateData, timestamp: now }; // Update cache
-                }
+        // } else {
+            
+           /*  logger.info('Fetching fresh exchange rates from API.');
+            const freshRateData = await ycRequest("GET", `/business/rates`);
+            if (freshRateData && freshRateData.rates) {
+                rateData = freshRateData;
+                // console.log('rateData2', rateData)
+                rateCache = { data: rateData, timestamp: now }; // Update cache
             }
 
             if (!rateData || !rateData.rates) {
                 return { status: false, message: 'Could not retrieve exchange rates from the provider.' };
             }
 
-            const sourceRateInfo = rateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());
-            const destRateInfo = rateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());
+             let sourceRateInfo;
+        let destRateInfo;
+        // let crossRate = 0;
 
-            if (!sourceRateInfo) return { status: false, message: `Exchange rate for source currency '${sourceCurrency}' not found.` };
-            if (!destRateInfo) return { status: false, message: `Exchange rate for destination currency '${destinationCurrency}' not found.` };
+        if(sourceCurrency.toUpperCase() == 'USD'){
+            
+            destRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());  //extract
+            if (!destRateInfo) return [false, 0, `Exchange rate for destination currency '${destinationCurrency}' not found.`];
+            // console.log('freshRateData1', destRateInfo)
 
-            sourcePerUsd = sourceRateInfo.sell;
-            destPerUsd = destRateInfo.sell;
+            sourcePerUsd = 1;
+            destPerUsd = destRateInfo.buy;
             crossRate = destPerUsd / sourcePerUsd;
-            last_updated = sourceRateInfo.updatedAt;
-        }
+            
+        }else if(destinationCurrency.toUpperCase() == 'USD'){
+            sourceRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());  //exrtact
+            if (!sourceRateInfo) return [false, 0, `Exchange rate for sourcecurrency '${sourceCurrency}' not found.`];
+            // console.log('freshRateData2', sourceRateInfo)
+
+            sourcePerUsd = sourceRateInfo.buy;
+            destPerUsd = 1;
+            crossRate = destPerUsd / sourcePerUsd;
+            
+        }else{
+            sourceRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());  //exrtact
+            destRateInfo = freshRateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());  //extract
+
+            if (!sourceRateInfo) return [false, 0, `Exchange rate for fiat source currency '${sourceCurrency}' not found.`];
+            if (!destRateInfo) return [false, 0, `Exchange rate for destination currency '${destinationCurrency}' not found.`];
+
+            sourcePerUsd = sourceRateInfo.buy;
+            destPerUsd = destRateInfo.buy;
+            crossRate = destPerUsd / sourcePerUsd;
+        } */
+
+            // const sourceRateInfo = rateData.rates.find(r => r.code.toUpperCase() === sourceCurrency.toUpperCase());
+            // const destRateInfo = rateData.rates.find(r => r.code.toUpperCase() === destinationCurrency.toUpperCase());
+
+            // if (!sourceRateInfo) return { status: false, message: `Exchangerate for source currency '${sourceCurrency}' not found.` };
+            // if (!destRateInfo) return { status: false, message: `Exchange rate for destination currency '${destinationCurrency}' not found.` };
+
+            // sourcePerUsd = sourceRateInfo.buy;
+            // destPerUsd = destRateInfo.sell;
+            // crossRate = destPerUsd / sourcePerUsd;
+            // last_updated = sourceRateInfo.updatedAt;
+        // }
 
         return {
             status: true,

@@ -1,0 +1,158 @@
+# Database Configuration
+DB_HOST=your_db_host
+DB_USER=your_db_user
+DB_PW=your_db_password
+DB_NAME=your_db_name
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+JWT_REFRESH=your_jwt_refresh_secret_here
+REFRESTKTIME=7d
+ACCESSTKTIME=135m
+
+# Email Configuration
+EMAIL=your_email
+PASSWORD=your_email_password
+SITENAME=HitchPay
+SITEPHONE=09069290861
+SITEPHONE2=
+SUPPORTMAIL=support@hitchpay.ng
+MAILSERVER=gmail
+
+# Cloudinary Configuration
+CLOUDINARY_NAME=your_cloudinary_name
+CLOUDINARY_KEY=your_cloudinary_key
+CLOUDINARY_SECRET=your_cloudinary_secret
+ALLOWFILESIZE=2
+
+# SMS Configuration
+SMSTOKEN=your_sms_token_here
+
+# SafeHaven Configuration
+SHCLIENTID=your_safehaven_client_id
+SH_CLIENT_ASCERTION=your_safehaven_client_assertion
+SH_DEBITACCOUNT=your_safehaven_debit_account
+SH_BANKCODE=999240
+SH_BASEURL=https://api.sandbox.safehavenmfb.com
+
+# Dojah Configuration
+DOJAH_URL=https://api.dojah.io
+DOJAH_SKEY=your_dojah_secret_key
+DOJAH_PKEY=your_dojah_public_key
+DOJAH_APPID=your_dojah_app_id
+
+# Encryption
+ENCRYPTION_KEY=your_encryption_key_here
+
+# Twilio Configuration
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_CONTENT_SID=your_twilio_content_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_WHATSAPP_NUMBER=+15557191933
+
+# CoralPay Configuration
+CORAL_URL=https://sandbox1.coralpay.com/coralpay-vas/api
+CORAL_AUTH=your_coralpay_auth
+
+# AWS Configuration
+AWS_ACCESS_KEY=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=eu-west-1
+GOOGLE_APPLICATION_CREDENTIALS=./config/serviceAccountKey.json
+
+# OTP Configuration
+OTP_EXPIRES=300
+APPENV=development
+
+# Redis Configuration
+REDIS_PASSWORD=your_redis_password
+REDIS_PORT=15306
+REDIS_HOST=your_redis_host
+REDIS_URL=your_redis_url
+OTP_MAX_ATTEMPTS=3
+
+# SendGrid Configuration
+SENDGRID_API_KEY=your_sendgrid_api_key
+
+# Maplerad Configuration
+MPLDURL=https://sandbox.api.maplerad.com/v1
+MPLSKEY=your_maplerad_secret_key
+MPLPUBKEY=your_maplerad_public_key
+MPLWK_SKEY=your_maplerad_webhook_secret
+
+# 9PSB Configuration
+PSBNK_PUBKEY=your_9psb_public_key
+PSBNK_PRVKEY=your_9psb_private_key
+PSBNK_DEBITACCT=1100011303
+PSBNK_URL=https://baastest.9psb.com.ng/iva-api/v1
+PSBNK_FTURL=https://baastest.9psb.com.ng/ipaymw-api/v1
+
+# New Relic Configuration
+NEW_RELIC_LICENSE_KEY=your_new_relic_license_key
+SESSION_SECRET=your_session_secret
+
+# VTPass Configuration
+VTPASS_URL=https://sandbox.vtpass.com/api
+VTPASS_APIKEY=your_vtpass_api_key
+VTPASS_PKEY=your_vtpass_public_key
+VTPASS_SKEY=your_vtpass_secret_key
+
+# Veriff Configuration
+VERIFF_PKEY=your_veriff_public_key
+VERIFF_URL=https://stationapi.veriff.com/v1
+VERIFF_SKEY=your_veriff_secret_key
+
+# Logging Configuration
+LOG_LEVEL=debug
+LOG_FOLDER=./logs/
+LOG_FILE=app-%DATE%.log
+CRON_SECRET=your_cron_secret
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_PUB_KEY=your_stripe_publishable_key
+STRIPE_REDIRECT_URL=https://dev-payment.hitchpay.ng
+
+# Server Configuration
+PORT=5000
+ACCESS_TOKEN_EXPIRY=1h
+PUBLIC_API_JWT_SECRET=your_public_api_jwt_secret
+WEBHOOK_SECRET=your_webhook_secret
+
+# YellowCard Configuration
+YC_PUBKEY=your_yellowcard_public_key
+YC_SECRET=your_yellowcard_secret
+YC_BASEURL=https://sandbox.api.yellowcard.io
+YC_MERCHANTID=your_yellowcard_merchant_id
+
+# Cybrid Configuration
+CYBRID_API_BASE=https://id.sandbox.cybrid.app
+CYBRID_API_BASEURL2=https://bank.sandbox.cybrid.app
+CYBRD_BANK_ID=your_cybrid_bank_id
+CYBRD_BANK_SECRET=your_cybrid_bank_secret
+CYBRD_ID=your_cybrid_id
+CYBRD_SECRET=your_cybrid_secret
+CYBRID_BANK_GUID=your_cybrid_bank_guid
+CYBRID_WBHOOK_SIGN=your_cybrid_webhook_signature
+
+# Providus Configuration
+PRVDS_BASEURL=http://154.113.16.142:8088/appdevapi/api
+PRVDS_CLIENT_SECRET=your_providus_client_secret
+PRVDS_CLIENT_ID=your_providus_client_id
+
+# System Configuration
+SYSTEM_NOTIFICATION_EMAILS=admin@example.com,support@example.com
+SYSTEM_NOTIFICATION_ID=4,6,25
+
+# Stamp Duty Configuration
+STAMPDUTY_MAX=10000
+STAMPDUTY_CHARGE=50
+
+# Squad Configuration
+SQD_SKEY=your_squad_secret_key
+SQD_PKEY=your_squad_public_key
+SQD_URL=https://sandbox-api-d.squadco.com
+SQD_BENECIARY_ACCOUNT=4920299492
+
+# VAT Configuration
+VAT=7.5
